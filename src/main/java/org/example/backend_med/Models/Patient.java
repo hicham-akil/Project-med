@@ -1,6 +1,7 @@
 package org.example.backend_med.Models;
 
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
 import lombok.Data;
@@ -15,6 +16,7 @@ public class Patient extends Utlisateur {
     private Date dateNaissance;
     private String adresse;
     private String telephone;
+    @JsonManagedReference
     @OneToMany(mappedBy = "patient")
     private List<RendezVous> rendezVous;
 

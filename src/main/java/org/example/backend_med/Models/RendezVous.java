@@ -1,6 +1,7 @@
 package org.example.backend_med.Models;
 
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.annotation.sql.DataSourceDefinitions;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -16,6 +17,7 @@ public class RendezVous {
   private Date dateHeure;
   private  String Status;
   private String typeConsultation;
+  @JsonBackReference
   @ManyToOne
   @JoinColumn(name = "patient_id")
   private Patient patient;
