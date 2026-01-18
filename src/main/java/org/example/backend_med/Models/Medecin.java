@@ -13,6 +13,9 @@ public class Medecin extends  Utlisateur{
     private String telephone;
     private String adresse;
     @OneToMany(mappedBy = "medecin")
+    private List<RendezVous> rendezVous;
+
+    @OneToMany(mappedBy = "medecin")
     private List<Horaire> horairesDisponibles;
     @ManyToMany
     @JoinTable(
@@ -21,5 +24,6 @@ public class Medecin extends  Utlisateur{
             inverseJoinColumns = @JoinColumn(name = "specialite_id")
     )
     private List<Specialite>  specialites;
+
 
 }

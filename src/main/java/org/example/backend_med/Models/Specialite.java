@@ -13,5 +13,5 @@ public class Specialite {
     private Long id;
     @ManyToMany(mappedBy = "specialites")
     private List<Medecin> medecin;
-
+    private String nomspecialite;
 }
