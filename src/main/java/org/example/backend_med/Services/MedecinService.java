@@ -2,28 +2,58 @@ package org.example.backend_med.Services;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend_med.Models.Medecin;
+import org.example.backend_med.Models.Specialite;
 import org.example.backend_med.Repository.MedecinRepo;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.example.backend_med.Repository.SpecialiteRepo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 @Transactional
 public class MedecinService implements IMedecin {
-    @Autowired
-    private MedecinRepo medecinRepo;
+
+    private final MedecinRepo medecinRepo;
+    private final SpecialiteRepo specialiteRepo;
 
     @Override
     public Medecin createMedecin(Medecin medecin) {
+        // Validate email uniqueness
         if (medecinRepo.existsByEmail(medecin.getEmail())) {
             throw new IllegalArgumentException("Un médecin avec cet email existe déjà");
         }
 
+        // Validate telephone uniqueness
         if (medecin.getTelephone() != null && medecinRepo.existsByTelephone(medecin.getTelephone())) {
             throw new IllegalArgumentException("Un médecin avec ce numéro de téléphone existe déjà");
+        }
+
+        // Validate and attach existing specialites
+        if (medecin.getSpecialites() != null && !medecin.getSpecialites().isEmpty()) {
+            List<Specialite> managedSpecialites = new ArrayList<>();
+            for (Specialite spec : medecin.getSpecialites()) {
+                if (spec.getId() == null) {
+                    throw new IllegalArgumentException("Specialite ID ne peut pas être null");
+                }
+                Specialite existingSpec = specialiteRepo.findById(spec.getId())
+                        .orElseThrow(() -> new IllegalArgumentException("Specialite non trouvée avec l'ID: " + spec.getId()));
+                managedSpecialites.add(existingSpec);
+            }
+            medecin.setSpecialites(managedSpecialites);
+        }
+
+        // Set bidirectional relationship for horaires
+        if (medecin.getHorairesDisponibles() != null) {
+            medecin.getHorairesDisponibles().forEach(horaire -> horaire.setMedecin(medecin));
+        }
+
+        // Set bidirectional relationship for rendezVous
+        if (medecin.getRendezVous() != null) {
+            medecin.getRendezVous().forEach(rv -> rv.setMedecin(medecin));
         }
 
         return medecinRepo.save(medecin);
@@ -44,7 +74,7 @@ public class MedecinService implements IMedecin {
     @Override
     @Transactional(readOnly = true)
     public List<Medecin> getMedecinsBySpecialite(String specialite) {
-        return medecinRepo.findBySpecialite(specialite);
+        return medecinRepo.findBySpecialiteName(specialite);
     }
 
     @Override
@@ -65,6 +95,36 @@ public class MedecinService implements IMedecin {
         return medecinRepo.findMedecinsWithAvailableHoraires();
     }
 
+    // New method: Get available medecins by day
+    @Transactional(readOnly = true)
+    public List<Medecin> getAvailableMedecinsByDay(String jour) {
+        return medecinRepo.findAvailableMedecinsByDay(jour);
+    }
+
+    // New method: Get available medecins by day and specialite
+    @Transactional(readOnly = true)
+    public List<Medecin> getAvailableMedecinsByDayAndSpecialite(String jour, Long specialiteId) {
+        return medecinRepo.findAvailableMedecinsByDayAndSpecialite(jour, specialiteId);
+    }
+
+    // New method: Get available medecins by day and time
+    @Transactional(readOnly = true)
+    public List<Medecin> getAvailableMedecinsByDayAndTime(String jour, String heure) {
+        return medecinRepo.findAvailableMedecinsByDayAndTime(jour, heure);
+    }
+
+    // New method: Get available medecins by day, time and specialite
+    @Transactional(readOnly = true)
+    public List<Medecin> getAvailableMedecinsByDayTimeAndSpecialite(String jour, String heure, Long specialiteId) {
+        return medecinRepo.findAvailableMedecinsByDayTimeAndSpecialite(jour, heure, specialiteId);
+    }
+
+    // New method: Get available medecins by specialite only
+    @Transactional(readOnly = true)
+    public List<Medecin> getAvailableMedecinsBySpecialite(Long specialiteId) {
+        return medecinRepo.findAvailableMedecinsBySpecialite(specialiteId);
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<Medecin> searchMedecinsByName(String name) {
@@ -76,21 +136,23 @@ public class MedecinService implements IMedecin {
         Medecin existingMedecin = medecinRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Médecin non trouvé avec l'ID: " + id));
 
+        // Check email uniqueness if email is being changed
         if (!existingMedecin.getEmail().equals(medecin.getEmail())
                 && medecinRepo.existsByEmail(medecin.getEmail())) {
             throw new IllegalArgumentException("Un médecin avec cet email existe déjà");
         }
 
+        // Check telephone uniqueness if telephone is being changed
         if (medecin.getTelephone() != null
                 && !medecin.getTelephone().equals(existingMedecin.getTelephone())
                 && medecinRepo.existsByTelephone(medecin.getTelephone())) {
             throw new IllegalArgumentException("Un médecin avec ce numéro de téléphone existe déjà");
         }
 
+        // Update fields
         existingMedecin.setNom(medecin.getNom());
         existingMedecin.setPrenom(medecin.getPrenom());
         existingMedecin.setEmail(medecin.getEmail());
-        existingMedecin.setSpecialite(medecin.getSpecialite());
         existingMedecin.setTelephone(medecin.getTelephone());
         existingMedecin.setAdresse(medecin.getAdresse());
 
@@ -129,6 +191,7 @@ public class MedecinService implements IMedecin {
         Medecin medecin = medecinRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Médecin non trouvé avec l'ID: " + id));
 
+        // Set all horaires to indisponible
         if (medecin.getHorairesDisponibles() != null) {
             medecin.getHorairesDisponibles().forEach(horaire -> {
                 horaire.setStatus("indisponible");
@@ -159,6 +222,6 @@ public class MedecinService implements IMedecin {
     @Override
     @Transactional(readOnly = true)
     public long countMedecinsBySpecialite(String specialite) {
-        return medecinRepo.findBySpecialite(specialite).size();
+        return medecinRepo.countBySpecialiteName(specialite);
     }
 }
