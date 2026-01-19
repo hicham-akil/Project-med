@@ -22,7 +22,7 @@ public class RendezVous {
   @GeneratedValue(strategy = GenerationType.AUTO)
   private Long id;
   private LocalDateTime dateHeure;
-  private  String Status;
+  private  String status;
   private String typeConsultation;
   @JsonBackReference
   @ManyToOne

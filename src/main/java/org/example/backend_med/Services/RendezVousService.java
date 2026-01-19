@@ -127,7 +127,6 @@ public class RendezVousService implements IRendezVous {
         }
 
         existing.setDateHeure(rendezVous.getDateHeure());
-        existing.setMotif(rendezVous.getMotif());
         existing.setStatus(rendezVous.getStatus());
 
         if (rendezVous.getMedecin() != null) {
