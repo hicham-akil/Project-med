@@ -71,14 +71,7 @@ public interface IRendezVous {
     // Check availability
     boolean isTimeSlotAvailable(Long medecinId, LocalDateTime dateTime);
 
-    // Check conflict
-    boolean hasConflict(Long medecinId, LocalDateTime startTime, LocalDateTime endTime);
 
-    // Count
-    long countRendezVous();
-
-    // Count - By Status
-    long countRendezVousByStatus(String status);
 
     // Count - By Medecin and Date
     long countRendezVousByMedecinAndDate(Long medecinId, LocalDate date);

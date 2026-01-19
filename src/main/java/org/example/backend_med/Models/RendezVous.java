@@ -8,6 +8,7 @@ import jakarta.annotation.sql.DataSourceDefinitions;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Entity
@@ -20,7 +21,7 @@ public class RendezVous {
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
   private Long id;
-  private Date dateHeure;
+  private LocalDateTime dateHeure;
   private  String Status;
   private String typeConsultation;
   @JsonBackReference
