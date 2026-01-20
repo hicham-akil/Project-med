@@ -3,6 +3,7 @@ package org.example.backend_med.Services;
 import lombok.RequiredArgsConstructor;
 import org.example.backend_med.Models.Administrateur;
 import org.example.backend_med.Repository.AdministrateurRepo;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +25,6 @@ public class AdministrateurService implements IAdministrateur {
             throw new IllegalArgumentException("Un administrateur avec cet email existe déjà");
         }
 
-        // Set default role if not provided
         if (administrateur.getRole() == null || administrateur.getRole().isEmpty()) {
             administrateur.setRole("admin");
         }
@@ -106,5 +106,20 @@ public class AdministrateurService implements IAdministrateur {
     @Transactional(readOnly = true)
     public long countAdministrateurs() {
         return administrateurRepo.count();
+    }
+
+    @Override
+    public @Nullable List<Administrateur> getAdministrateursByNiveau(String niveau) {
+        return List.of();
+    }
+
+    @Override
+    public Administrateur updateAdministrateurRole(Long id, String role) {
+        return null;
+    }
+
+    @Override
+    public @Nullable Long funcountbyrole(String role) {
+        return administrateurRepo.countByRole(role);
     }
 }
