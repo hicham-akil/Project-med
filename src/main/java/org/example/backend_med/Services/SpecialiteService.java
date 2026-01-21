@@ -4,6 +4,7 @@ package org.example.backend_med.Services;
 import lombok.RequiredArgsConstructor;
 import org.example.backend_med.Models.Specialite;
 import org.example.backend_med.Repository.SpecialiteRepo;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,8 +15,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Transactional
 public class SpecialiteService implements ISpecialite {
-
-    private final SpecialiteRepo specialiteRepo;
+    @Autowired
+    private  SpecialiteRepo specialiteRepo;
 
     @Override
     public Specialite createSpecialite(Specialite specialite) {
