@@ -1,7 +1,9 @@
 package org.example.backend_med.Services;
 
 import lombok.RequiredArgsConstructor;
-import org.example.backend_med.Models.RendezVous;
+import org.example.backend_med.Models.*;
+import org.example.backend_med.Repository.MedecinRepo;
+import org.example.backend_med.Repository.PatientRepo;
 import org.example.backend_med.Repository.RendezVousRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,26 +21,67 @@ import java.util.Optional;
 public class RendezVousService implements IRendezVous {
     @Autowired
     private RendezVousRepo rendezVousRepo;
+    @Autowired
+    private  NotificationService notificationService;
+    @Autowired
+    private PatientRepo patientRepo;
 
-    @Override
+    @Autowired
+    private MedecinRepo medecinRepo;
+
+    /**
+     * Create a new rendez-vous with notifications for patient and medecin
+     */
     public RendezVous createRendezVous(RendezVous rendezVous) {
-        // Validate that the time slot is available
-        if (!isTimeSlotAvailable(rendezVous.getMedecin().getId(), rendezVous.getDateHeure())) {
+
+        // 1️⃣ Fetch full patient and medecin from DB
+        Patient patient = patientRepo.findById(rendezVous.getPatient().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Patient not found"));
+
+        Medecin medecin = medecinRepo.findById(rendezVous.getMedecin().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Médecin not found"));
+
+        rendezVous.setPatient(patient);
+        rendezVous.setMedecin(medecin);
+
+        // 2️⃣ Validate time slot availability
+        if (!isTimeSlotAvailable(medecin.getId(), rendezVous.getDateHeure())) {
             throw new IllegalArgumentException("Ce créneau horaire n'est pas disponible");
         }
 
-        // Set default status if not provided
+        // 3️⃣ Set default status if not provided
         if (rendezVous.getStatus() == null || rendezVous.getStatus().isEmpty()) {
             rendezVous.setStatus("en attente");
         }
 
-        // Validate date is not in the past
         if (rendezVous.getDateHeure().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("La date du rendez-vous ne peut pas être dans le passé");
         }
 
-        return rendezVousRepo.save(rendezVous);
+        // 5️⃣ Save the rendez-vous in DB
+        RendezVous savedRdv = rendezVousRepo.save(rendezVous);
+
+        // 6️⃣ Notifications
+        String patientMessage = "Votre rendez-vous avec le Dr " + medecin.getNom() +
+                " est confirmé pour le " + savedRdv.getDateHeure();
+
+        String medecinMessage = "Vous avez un nouveau rendez-vous avec le patient " +
+                patient.getNom() + " le " + savedRdv.getDateHeure();
+
+        // Send notification only if email is present
+        if (patient.getEmail() != null && !patient.getEmail().isEmpty()) {
+            notificationService.notify(patient, patientMessage, NotificationType.PATIENT);
+        }
+
+        if (medecin.getEmail() != null && !medecin.getEmail().isEmpty()) {
+            notificationService.notify(medecin, medecinMessage, NotificationType.MEDECIN);
+        }
+
+        // 7️⃣ Return saved rendez-vous
+        return savedRdv;
     }
+
+
 
     @Override
     @Transactional(readOnly = true)
