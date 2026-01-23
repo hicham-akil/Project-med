@@ -16,10 +16,14 @@ public abstract class Utlisateur {
     private String nom;
     private String prenom;
     private String password;
+
+    @Column(unique = true, nullable = false)
     private String email;
+
     private Date dateCreation;
     private Date dateModification;
     private String role;
+
     @OneToMany(mappedBy = "utilisateur")
     private List<Notification> notifications;
 }

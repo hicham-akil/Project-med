@@ -23,5 +23,4 @@ public class Patient extends Utlisateur {
     private String telephone;
     @OneToMany(mappedBy = "patient")
     private List<RendezVous> rendezVous;
-
 }
