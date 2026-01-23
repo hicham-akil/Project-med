@@ -2,6 +2,7 @@ package org.example.backend_med.Models;
 
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.annotation.sql.DataSourceDefinitions;
@@ -21,7 +22,8 @@ public class RendezVous {
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
   private Long id;
-  private LocalDateTime dateHeure;
+  @Column(name = "date_heure")
+  private LocalDateTime  dateHeure;
   private  String status;
   private String typeConsultation;
   @JsonBackReference

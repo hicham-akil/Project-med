@@ -9,9 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.*;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,10 +20,9 @@ public class RendezVousService implements IRendezVous {
     @Autowired
     private RendezVousRepo rendezVousRepo;
     @Autowired
-    private  NotificationService notificationService;
+    private NotificationService notificationService;
     @Autowired
     private PatientRepo patientRepo;
-
     @Autowired
     private MedecinRepo medecinRepo;
 
@@ -44,24 +41,33 @@ public class RendezVousService implements IRendezVous {
         rendezVous.setPatient(patient);
         rendezVous.setMedecin(medecin);
 
-        // 2️⃣ Validate time slot availability
+        // 2️⃣ Validate against horaires disponibles
+        if (!isWithinHorairesDisponibles(medecin, rendezVous.getDateHeure())) {
+            throw new IllegalArgumentException(
+                    "Le médecin n'est pas disponible à ce créneau horaire. " +
+                            "Veuillez vérifier les horaires disponibles du médecin."
+            );
+        }
+
+        // 3️⃣ Validate time slot availability (no conflicts)
         if (!isTimeSlotAvailable(medecin.getId(), rendezVous.getDateHeure())) {
-            throw new IllegalArgumentException("Ce créneau horaire n'est pas disponible");
+            throw new IllegalArgumentException("Ce créneau horaire est déjà réservé");
         }
 
-        // 3️⃣ Set default status if not provided
-        if (rendezVous.getStatus() == null || rendezVous.getStatus().isEmpty()) {
-            rendezVous.setStatus("en attente");
-        }
-
+        // 4️⃣ Validate date is not in the past
         if (rendezVous.getDateHeure().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("La date du rendez-vous ne peut pas être dans le passé");
         }
 
-        // 5️⃣ Save the rendez-vous in DB
+        // 5️⃣ Set default status if not provided
+        if (rendezVous.getStatus() == null || rendezVous.getStatus().isEmpty()) {
+            rendezVous.setStatus("en attente");
+        }
+
+        // 6️⃣ Save the rendez-vous in DB
         RendezVous savedRdv = rendezVousRepo.save(rendezVous);
 
-        // 6️⃣ Notifications
+        // 7️⃣ Notifications
         String patientMessage = "Votre rendez-vous avec le Dr " + medecin.getNom() +
                 " est confirmé pour le " + savedRdv.getDateHeure();
 
@@ -77,11 +83,68 @@ public class RendezVousService implements IRendezVous {
             notificationService.notify(medecin, medecinMessage, NotificationType.MEDECIN);
         }
 
-        // 7️⃣ Return saved rendez-vous
+        // 8️⃣ Return saved rendez-vous
         return savedRdv;
     }
 
+    /**
+     * Validate if the rendez-vous time matches medecin's horaires disponibles
+     */
+    private boolean isWithinHorairesDisponibles(Medecin medecin, LocalDateTime dateTime) {
+        // Get day of week in French
+        DayOfWeek dayOfWeek = dateTime.getDayOfWeek();
+        String jourSemaine = getDayInFrench(dayOfWeek);
 
+        // Get time
+        LocalTime time = dateTime.toLocalTime();
+
+        // Check if medecin has horaires disponibles
+        List<Horaire> horaires = medecin.getHorairesDisponibles();
+
+        if (horaires == null || horaires.isEmpty()) {
+            return false;
+        }
+
+        // Find matching horaire
+        for (Horaire horaire : horaires) {
+            // Check if day matches
+            if (!jourSemaine.equalsIgnoreCase(horaire.getJoursSemaine())) {
+                continue;
+            }
+
+            // Check if status is disponible
+            if (!"disponible".equalsIgnoreCase(horaire.getStatus())) {
+                continue;
+            }
+
+            // Parse times
+            LocalTime heureDebut = LocalTime.parse(horaire.getHeureDebut());
+            LocalTime heureFin = LocalTime.parse(horaire.getHeureFin());
+
+            // Check if time is within range (inclusive start, exclusive end)
+            if (!time.isBefore(heureDebut) && time.isBefore(heureFin)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Convert DayOfWeek to French day name
+     */
+    private String getDayInFrench(DayOfWeek dayOfWeek) {
+        switch (dayOfWeek) {
+            case MONDAY: return "Lundi";
+            case TUESDAY: return "Mardi";
+            case WEDNESDAY: return "Mercredi";
+            case THURSDAY: return "Jeudi";
+            case FRIDAY: return "Vendredi";
+            case SATURDAY: return "Samedi";
+            case SUNDAY: return "Dimanche";
+            default: return "";
+        }
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -164,8 +227,15 @@ public class RendezVousService implements IRendezVous {
 
         // Check if rescheduling and validate availability
         if (!existing.getDateHeure().equals(rendezVous.getDateHeure())) {
+            Medecin medecin = medecinRepo.findById(rendezVous.getMedecin().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Médecin not found"));
+
+            if (!isWithinHorairesDisponibles(medecin, rendezVous.getDateHeure())) {
+                throw new IllegalArgumentException("Le médecin n'est pas disponible à ce créneau horaire");
+            }
+
             if (!isTimeSlotAvailable(rendezVous.getMedecin().getId(), rendezVous.getDateHeure())) {
-                throw new IllegalArgumentException("Ce créneau horaire n'est pas disponible");
+                throw new IllegalArgumentException("Ce créneau horaire est déjà réservé");
             }
         }
 
@@ -202,9 +272,16 @@ public class RendezVousService implements IRendezVous {
             throw new IllegalArgumentException("La nouvelle date ne peut pas être dans le passé");
         }
 
+        Medecin medecin = rendezVous.getMedecin();
+
+        // Check if within horaires disponibles
+        if (!isWithinHorairesDisponibles(medecin, newDateTime)) {
+            throw new IllegalArgumentException("Le médecin n'est pas disponible à ce créneau horaire");
+        }
+
         // Check if new time slot is available
-        if (!isTimeSlotAvailable(rendezVous.getMedecin().getId(), newDateTime)) {
-            throw new IllegalArgumentException("Ce créneau horaire n'est pas disponible");
+        if (!isTimeSlotAvailable(medecin.getId(), newDateTime)) {
+            throw new IllegalArgumentException("Ce créneau horaire est déjà réservé");
         }
 
         rendezVous.setDateHeure(newDateTime);
