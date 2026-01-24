@@ -19,7 +19,16 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll() // Allow all endpoints for testing
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/administrateurs/**").hasRole("ADMIN").anyRequest().denyAll()
+                        .requestMatchers("/api/horaires/**").permitAll()
+                        .requestMatchers("/api/medecins/**").permitAll()
+                        .requestMatchers("/api/notifications/**").permitAll()
+                        .requestMatchers("/api/patients/**").permitAll()
+                        .requestMatchers("/api/rendezvous/**").permitAll()
+                        .requestMatchers("/api/specialites/**").permitAll()
+
+                        .anyRequest().denyAll()
                 )
                 .httpBasic(withDefaults())
                 .formLogin(form -> form.disable());
