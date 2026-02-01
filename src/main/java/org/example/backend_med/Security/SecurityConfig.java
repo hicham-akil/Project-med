@@ -21,18 +21,16 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/chat/**").permitAll()
-
-                        .requestMatchers("/api/administrateurs/**").hasRole("ADMIN")
                         .requestMatchers("/api/horaires/**").permitAll()
                         .requestMatchers("/api/medecins/**").permitAll()
                         .requestMatchers("/api/notifications/**").permitAll()
                         .requestMatchers("/api/patients/**").permitAll()
                         .requestMatchers("/api/rendezvous/**").permitAll()
-                        .requestMatchers("/api/chat/**").permitAll()
                         .requestMatchers("/api/specialites/**").permitAll()
-
+                        .requestMatchers("/api/administrateurs/**").hasRole("ADMIN")
                         .anyRequest().denyAll()
                 )
+
                 .httpBasic(withDefaults())
                 .formLogin(form -> form.disable());
 
