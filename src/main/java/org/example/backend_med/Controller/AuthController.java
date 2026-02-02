@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend_med.Models.Medecin;
 import org.example.backend_med.Models.Patient;
 import org.example.backend_med.Models.Utlisateur;
+import org.example.backend_med.Security.JwtUtil;
 import org.example.backend_med.Service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,7 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtUtil jwtUtil;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, Object> request) {
@@ -101,8 +103,12 @@ public class AuthController {
                     response.put("adresse", medecin.getAdresse());
                 }
             }
-
-            return ResponseEntity.ok(response);
+            String token =jwtUtil.GenerateJwtToken(user.getNom(), user.getRole(),user.getId());
+            return ResponseEntity.ok(Map.of(
+                    "message", "Login successful",
+                    "role", user.getRole(),
+                    "token", token
+            ));
         } catch (Exception e) {
             e.printStackTrace(); // Print stack trace to console
             Map<String, String> errorResponse = new HashMap<>();
