@@ -7,32 +7,31 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-
+    private final JwtFilter jwtFilter;
+    public SecurityConfig(JwtFilter jwtFilter) {
+        this.jwtFilter = jwtFilter;
+    }
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/chat/**").permitAll()
-                        .requestMatchers("/api/horaires/**").permitAll()
-                        .requestMatchers("/api/medecins/**").permitAll()
-                        .requestMatchers("/api/notifications/**").permitAll()
-                        .requestMatchers("/api/patients/**").permitAll()
-                        .requestMatchers("/api/rendezvous/**").permitAll()
-                        .requestMatchers("/api/specialites/**").permitAll()
-                        .requestMatchers("/api/administrateurs/**").hasRole("ADMIN")
-                        .anyRequest().denyAll()
-                )
 
-                .httpBasic(withDefaults())
-                .formLogin(form -> form.disable());
+                        // Protected endpoints
+                        .requestMatchers("/api/**").authenticated()
+
+                        .anyRequest().permitAll()
+                )
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
