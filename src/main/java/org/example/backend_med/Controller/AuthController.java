@@ -5,7 +5,6 @@ import org.example.backend_med.Models.Medecin;
 import org.example.backend_med.Models.Patient;
 import org.example.backend_med.Models.Utlisateur;
 import org.example.backend_med.Security.JwtUtil;
-import org.example.backend_med.Service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,11 +13,11 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:5174")
+@CrossOrigin(origins = "http://localhost:5173")
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
+    private final org.example.backend_med.Services.AuthService authService;
     private final JwtUtil jwtUtil;
 
     @PostMapping("/register")
@@ -107,6 +106,7 @@ public class AuthController {
             return ResponseEntity.ok(Map.of(
                     "message", "Login successful",
                     "role", user.getRole(),
+                    "id",user.getId(),
                     "token", token
             ));
         } catch (Exception e) {

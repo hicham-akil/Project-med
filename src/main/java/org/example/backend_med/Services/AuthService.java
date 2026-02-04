@@ -1,4 +1,4 @@
-package org.example.backend_med.Service;
+package org.example.backend_med.Services;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend_med.Models.Medecin;
