@@ -5,8 +5,10 @@ import org.example.backend_med.Models.Medecin;
 import org.example.backend_med.Models.Patient;
 import org.example.backend_med.Models.Utlisateur;
 import org.example.backend_med.Security.JwtUtil;
+import org.example.backend_med.Services.ImageUploadService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,11 +21,34 @@ public class AuthController {
 
     private final org.example.backend_med.Services.AuthService authService;
     private final JwtUtil jwtUtil;
+    private final ImageUploadService imageUploadService;
 
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody Map<String, Object> request) {
+    @PostMapping(value = "/register", consumes = "multipart/form-data")
+    public ResponseEntity<?> register(
+            @RequestPart("data") Map<String, Object> request,
+            @RequestPart(value = "image", required = false) MultipartFile image
+    ){
         try {
-            Utlisateur user = authService.register(request);
+            System.out.println("=== Registration Request ===");
+            System.out.println("Request data: " + request);
+            System.out.println("Image received: " + (image != null));
+
+            String imageUrl = null;
+            if (image != null && !image.isEmpty()) {
+                System.out.println("Image details:");
+                System.out.println("  - Name: " + image.getOriginalFilename());
+                System.out.println("  - Size: " + image.getSize() + " bytes");
+                System.out.println("  - Content Type: " + image.getContentType());
+
+                imageUrl = imageUploadService.uploadImage(image);
+                System.out.println("Image uploaded successfully: " + imageUrl);
+            } else {
+                System.out.println("No image provided or image is empty");
+            }
+
+            Utlisateur user = authService.register(request, imageUrl);
+            System.out.println("User registered with ID: " + user.getId());
+            System.out.println("Profile image URL in DB: " + user.getProfileImageUrl());
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "User registered successfully");
@@ -32,38 +57,28 @@ public class AuthController {
             response.put("nom", user.getNom());
             response.put("prenom", user.getPrenom());
             response.put("role", user.getRole());
+            response.put("profileImageUrl", imageUrl);
 
-            // Add specific fields based on role
-            if (user instanceof Patient) {
-                Patient patient = (Patient) user;
-                if (patient.getTelephone() != null) {
-                    response.put("telephone", patient.getTelephone());
-                }
-                if (patient.getAdresse() != null) {
-                    response.put("adresse", patient.getAdresse());
-                }
-                if (patient.getDateNaissance() != null) {
-                    response.put("dateNaissance", patient.getDateNaissance());
-                }
-            } else if (user instanceof Medecin) {
-                Medecin medecin = (Medecin) user;
-                if (medecin.getTelephone() != null) {
-                    response.put("telephone", medecin.getTelephone());
-                }
-                if (medecin.getAdresse() != null) {
-                    response.put("adresse", medecin.getAdresse());
-                }
+            if (user instanceof Patient patient) {
+                response.put("telephone", patient.getTelephone());
+                response.put("adresse", patient.getAdresse());
+                response.put("dateNaissance", patient.getDateNaissance());
+            } else if (user instanceof Medecin medecin) {
+                response.put("telephone", medecin.getTelephone());
+                response.put("adresse", medecin.getAdresse());
             }
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            e.printStackTrace(); // Print stack trace to console
+            System.err.println("=== Registration Error ===");
+            e.printStackTrace();
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("error", e.getMessage() != null ? e.getMessage() : e.getClass().getName());
             errorResponse.put("details", e.toString());
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
+
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> request) {

@@ -19,7 +19,8 @@ public class AuthService {
     private final UtilisateurRepository utilisateurRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public Utlisateur register(Map<String, Object> request) {
+    // Modified to accept imageUrl parameter
+    public Utlisateur register(Map<String, Object> request, String imageUrl) {
         String role = (String) request.get("role");
         String email = (String) request.get("email");
 
@@ -63,6 +64,11 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode((String) request.get("password")));
         user.setRole(role.toUpperCase());
         user.setDateCreation(new Date());
+
+        // Set the profile image URL
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            user.setProfileImageUrl(imageUrl);
+        }
 
         return utilisateurRepository.save(user);
     }

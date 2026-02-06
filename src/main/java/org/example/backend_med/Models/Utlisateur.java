@@ -23,6 +23,9 @@ public abstract class Utlisateur {
     private Date dateCreation;
     private Date dateModification;
     private String role;
+    @Column(name = "profile_image_url",length = 500)
+    private String profileImageUrl;
+
 
     @OneToMany(mappedBy = "utilisateur")
     private List<Notification> notifications;
