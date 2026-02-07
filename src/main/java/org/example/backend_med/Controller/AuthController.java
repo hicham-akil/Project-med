@@ -29,17 +29,9 @@ public class AuthController {
             @RequestPart(value = "image", required = false) MultipartFile image
     ){
         try {
-            System.out.println("=== Registration Request ===");
-            System.out.println("Request data: " + request);
-            System.out.println("Image received: " + (image != null));
 
             String imageUrl = null;
             if (image != null && !image.isEmpty()) {
-                System.out.println("Image details:");
-                System.out.println("  - Name: " + image.getOriginalFilename());
-                System.out.println("  - Size: " + image.getSize() + " bytes");
-                System.out.println("  - Content Type: " + image.getContentType());
-
                 imageUrl = imageUploadService.uploadImage(image);
                 System.out.println("Image uploaded successfully: " + imageUrl);
             } else {
@@ -47,8 +39,6 @@ public class AuthController {
             }
 
             Utlisateur user = authService.register(request, imageUrl);
-            System.out.println("User registered with ID: " + user.getId());
-            System.out.println("Profile image URL in DB: " + user.getProfileImageUrl());
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "User registered successfully");
@@ -70,7 +60,6 @@ public class AuthController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            System.err.println("=== Registration Error ===");
             e.printStackTrace();
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("error", e.getMessage() != null ? e.getMessage() : e.getClass().getName());
@@ -96,7 +85,6 @@ public class AuthController {
             response.put("prenom", user.getPrenom());
             response.put("role", user.getRole());
 
-            // Add specific fields based on role
             if (user instanceof Patient) {
                 Patient patient = (Patient) user;
                 if (patient.getTelephone() != null) {
@@ -125,7 +113,7 @@ public class AuthController {
                     "token", token
             ));
         } catch (Exception e) {
-            e.printStackTrace(); // Print stack trace to console
+            e.printStackTrace();
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("error", e.getMessage() != null ? e.getMessage() : e.getClass().getName());
             errorResponse.put("details", e.toString());

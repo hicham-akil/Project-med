@@ -19,12 +19,10 @@ public class AuthService {
     private final UtilisateurRepository utilisateurRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // Modified to accept imageUrl parameter
     public Utlisateur register(Map<String, Object> request, String imageUrl) {
         String role = (String) request.get("role");
         String email = (String) request.get("email");
 
-        // Check if user already exists
         if (utilisateurRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("Email already registered");
         }
@@ -36,7 +34,6 @@ public class AuthService {
             patient.setTelephone((String) request.get("telephone"));
             patient.setAdresse((String) request.get("adresse"));
 
-            // Handle date of birth
             if (request.get("dateNaissance") != null) {
                 try {
                     String dateStr = (String) request.get("dateNaissance");
@@ -65,7 +62,6 @@ public class AuthService {
         user.setRole(role.toUpperCase());
         user.setDateCreation(new Date());
 
-        // Set the profile image URL
         if (imageUrl != null && !imageUrl.isEmpty()) {
             user.setProfileImageUrl(imageUrl);
         }

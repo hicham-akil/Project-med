@@ -41,7 +41,6 @@ public class ImageUploadService {
             );
 
             String secureUrl = uploadResult.get("secure_url").toString();
-            System.out.println("Image uploaded successfully to Cloudinary: " + secureUrl);
             return secureUrl;
 
         } catch (IOException e) {
@@ -64,9 +63,6 @@ public class ImageUploadService {
     }
 
     private String extractPublicId(String imageUrl) {
-        // Extract public_id from Cloudinary URL
-        // Example: https://res.cloudinary.com/demo/image/upload/v1234/profile_pictures/abc123.jpg
-        // Returns: profile_pictures/abc123
         String[] parts = imageUrl.split("/upload/");
         if (parts.length > 1) {
             String[] pathParts = parts[1].split("/");

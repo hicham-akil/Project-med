@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "http://localhost:5173")
 
 public class UserController {
 
@@ -18,9 +17,7 @@ public class UserController {
         this.userService = service;
     }
 
-    // -----------------------
-    // Get user by ID (role-aware)
-    // -----------------------
+
     @GetMapping("/{id}")
     public ResponseEntity<?> getUser(@PathVariable Long id) {
         return userService.getUserById(id)
@@ -28,9 +25,7 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // -----------------------
-    // Update user by ID (role-aware)
-    // -----------------------
+
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody Object updatedUser) {
         try {
@@ -41,9 +36,7 @@ public class UserController {
         }
     }
 
-    // -----------------------
-    // Delete user by ID (role-aware)
-    // -----------------------
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         try {
