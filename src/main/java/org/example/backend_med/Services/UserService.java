@@ -6,6 +6,8 @@ import org.example.backend_med.Repository.PatientRepo;
 import org.example.backend_med.Repository.MedecinRepo;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -33,32 +35,70 @@ public class UserService {
     }
 
     // ---------------------------
-    // Update user by ID
+    // Update user by ID (profile info only)
     // ---------------------------
-    public Object updateUser(Long id, Object updatedUser) {
+    public Object updateUser(Long id, Map<String, Object> updatedUserData, String imageUrl) {
         Optional<Patient> patientOpt = patientRepo.findById(id);
         if (patientOpt.isPresent()) {
             Patient existing = patientOpt.get();
-            Patient u = (Patient) updatedUser;
-            existing.setNom(u.getNom());
-            existing.setPrenom(u.getPrenom());
-            existing.setEmail(u.getEmail());
-            existing.setTelephone(u.getTelephone());
-            existing.setAdresse(u.getAdresse());
-            existing.setDateNaissance(u.getDateNaissance());
+
+            if (updatedUserData.containsKey("nom")) {
+                existing.setNom((String) updatedUserData.get("nom"));
+            }
+            if (updatedUserData.containsKey("prenom")) {
+                existing.setPrenom((String) updatedUserData.get("prenom"));
+            }
+            if (updatedUserData.containsKey("email")) {
+                existing.setEmail((String) updatedUserData.get("email"));
+            }
+            if (updatedUserData.containsKey("telephone")) {
+                existing.setTelephone((String) updatedUserData.get("telephone"));
+            }
+            if (updatedUserData.containsKey("adresse")) {
+                existing.setAdresse((String) updatedUserData.get("adresse"));
+            }
+            if (updatedUserData.containsKey("dateNaissance")) {
+                Object dateObj = updatedUserData.get("dateNaissance");
+                if (dateObj instanceof String) {
+                    existing.setDateNaissance(new Date());
+                } else if (dateObj instanceof Date) {
+                    existing.setDateNaissance((Date) dateObj);
+                }
+            }
+
+            // Update image if provided
+            if (imageUrl != null) {
+                existing.setProfileImageUrl(imageUrl);
+            }
+
             return patientRepo.save(existing);
         }
 
         Optional<Medecin> medecinOpt = medecinRepo.findById(id);
         if (medecinOpt.isPresent()) {
             Medecin existing = medecinOpt.get();
-            Medecin u = (Medecin) updatedUser;
-            existing.setNom(u.getNom());
-            existing.setPrenom(u.getPrenom());
-            existing.setEmail(u.getEmail());
-            existing.setTelephone(u.getTelephone());
-            existing.setAdresse(u.getAdresse());
-            existing.setSpecialites(u.getSpecialites());
+
+            if (updatedUserData.containsKey("nom")) {
+                existing.setNom((String) updatedUserData.get("nom"));
+            }
+            if (updatedUserData.containsKey("prenom")) {
+                existing.setPrenom((String) updatedUserData.get("prenom"));
+            }
+            if (updatedUserData.containsKey("email")) {
+                existing.setEmail((String) updatedUserData.get("email"));
+            }
+            if (updatedUserData.containsKey("telephone")) {
+                existing.setTelephone((String) updatedUserData.get("telephone"));
+            }
+            if (updatedUserData.containsKey("adresse")) {
+                existing.setAdresse((String) updatedUserData.get("adresse"));
+            }
+
+            // Update image if provided
+            if (imageUrl != null) {
+                existing.setProfileImageUrl(imageUrl);
+            }
+
             return medecinRepo.save(existing);
         }
 
@@ -83,6 +123,4 @@ public class UserService {
 
         throw new RuntimeException("User not found with id: " + id);
     }
-
-
 }
