@@ -22,12 +22,10 @@ public class MedecinService implements IMedecin {
 
     @Override
     public Medecin createMedecin(Medecin medecin) {
-        // Validate email uniqueness
         if (medecinRepo.existsByEmail(medecin.getEmail())) {
             throw new IllegalArgumentException("Un médecin avec cet email existe déjà");
         }
 
-        // Validate telephone uniqueness
         if (medecin.getTelephone() != null && medecinRepo.existsByTelephone(medecin.getTelephone())) {
             throw new IllegalArgumentException("Un médecin avec ce numéro de téléphone existe déjà");
         }

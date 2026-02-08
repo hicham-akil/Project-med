@@ -56,6 +56,7 @@ public class AuthController {
             } else if (user instanceof Medecin medecin) {
                 response.put("telephone", medecin.getTelephone());
                 response.put("adresse", medecin.getAdresse());
+                response.put("specialites", medecin.getSpecialites());
             }
 
             return ResponseEntity.ok(response);

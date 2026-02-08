@@ -3,13 +3,16 @@ package org.example.backend_med.Services;
 import lombok.RequiredArgsConstructor;
 import org.example.backend_med.Models.Medecin;
 import org.example.backend_med.Models.Patient;
+import org.example.backend_med.Models.Specialite;
 import org.example.backend_med.Models.Utlisateur;
+import org.example.backend_med.Repository.SpecialiteRepo;
 import org.example.backend_med.Repository.UtilisateurRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -18,7 +21,7 @@ public class AuthService {
 
     private final UtilisateurRepository utilisateurRepository;
     private final PasswordEncoder passwordEncoder;
-
+    private final SpecialiteRepo specialiteRepo;
     public Utlisateur register(Map<String, Object> request, String imageUrl) {
         String role = (String) request.get("role");
         String email = (String) request.get("email");
@@ -49,6 +52,17 @@ public class AuthService {
             Medecin medecin = new Medecin();
             medecin.setTelephone((String) request.get("telephone"));
             medecin.setAdresse((String) request.get("adresse"));
+            if (request.get("specialites") != null) {
+                List<Long> specialiteIds = (List<Long>) request.get("specialites");
+                List<Specialite> specialites = specialiteRepo.findAllById(specialiteIds);
+
+                if (specialites.isEmpty()) {
+                    throw new RuntimeException("No valid specialities found");
+                }
+
+                medecin.setSpecialites(specialites);
+            }
+
             user = medecin;
 
         } else {
