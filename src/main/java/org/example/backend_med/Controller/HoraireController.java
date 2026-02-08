@@ -1,7 +1,11 @@
 package org.example.backend_med.Controller;
 
+import org.example.backend_med.Dto.HoraireDTO;
 import org.example.backend_med.Models.Horaire;
+import org.example.backend_med.Models.Medecin;
+import org.example.backend_med.Repository.MedecinRepo;
 import org.example.backend_med.Services.IHoraire;
+import org.example.backend_med.Services.IMedecin;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,20 +18,39 @@ import java.util.Optional;
 @RequestMapping("/api/horaires")
 @CrossOrigin(origins = "*")
 public class HoraireController {
-
+    @Autowired
+    private MedecinRepo medecinRepo;
     @Autowired
     private IHoraire horaireService;
+    @Autowired
+    private IMedecin medecinService;
 
     // Create
     @PostMapping
-    public ResponseEntity<?> createHoraire(@RequestBody Horaire horaire) {
+    public ResponseEntity<?> createHoraire(@RequestBody List<HoraireDTO> horairesDto) {
         try {
-            Horaire created = horaireService.createHoraire(horaire);
+            List<Horaire> horaires = horairesDto.stream().map(dto -> {
+                Horaire h = new Horaire();
+                h.setJoursSemaine(dto.getJoursSemaine());
+                h.setHeureDebut(dto.getHeureDebut());
+                h.setHeureFin(dto.getHeureFin());
+                h.setStatus(dto.getStatus());
+
+                Medecin m = medecinRepo.findById(dto.getMedecinId())
+                        .orElseThrow(() -> new RuntimeException("Medecin not found"));
+                h.setMedecin(m);
+
+                return h;
+            }).toList();
+
+            List<Horaire> created = horaireService.createHoraire(horaires);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
+
 
     // Get by ID
     @GetMapping("/{id}")

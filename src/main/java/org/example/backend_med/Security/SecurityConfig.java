@@ -28,6 +28,8 @@ public class SecurityConfig {
                         // Public endpoints
                         .requestMatchers("/api/users/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/specialites/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/specialites/**").permitAll()
+
                         .requestMatchers("/api/auth/**").permitAll()
 
                         // Protected endpoints

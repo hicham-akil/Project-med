@@ -8,7 +8,7 @@ import java.util.Optional;
 public interface IHoraire {
 
     // Create
-    Horaire createHoraire(Horaire horaire);
+    List<Horaire>  createHoraire(List<Horaire> horaires);
 
     // Read
     Optional<Horaire> getHoraireById(Long id);

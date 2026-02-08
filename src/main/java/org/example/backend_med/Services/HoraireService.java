@@ -17,12 +17,9 @@ public class HoraireService implements IHoraire {
     private HoraireRepo horaireRepo;
 
     @Override
-    public Horaire createHoraire(Horaire horaire) {
-        // Set default status if not provided
-        if (horaire.getStatus() == null || horaire.getStatus().isEmpty()) {
-            horaire.setStatus("disponible");
-        }
-        return horaireRepo.save(horaire);
+    public List<Horaire> createHoraire(List<Horaire> horaires) {
+
+        return horaireRepo.saveAll(horaires);
     }
 
     @Override
