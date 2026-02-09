@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,8 +19,38 @@ public class HoraireService implements IHoraire {
 
     @Override
     public List<Horaire> createHoraire(List<Horaire> horaires) {
+        List<Horaire> savedHoraires = new ArrayList<>();
 
-        return horaireRepo.saveAll(horaires);
+        for (Horaire horaire : horaires) {
+            Horaire toSave;
+
+            // Check if this horaire already exists by idHoraire
+            if (horaire.getIdHoraire() != null) {
+                toSave = horaireRepo.findById(horaire.getIdHoraire())
+                        .orElse(new Horaire());
+            } else {
+                // Check if horaire exists for this medecin and day
+                List<Horaire> existing = horaireRepo.findByMedecinIdAndJoursSemaine(
+                        horaire.getMedecin().getId(),
+                        horaire.getJoursSemaine()
+                );
+
+                toSave = existing.isEmpty() ? new Horaire() : existing.get(0);
+            }
+
+            // Update all fields
+            toSave.setJoursSemaine(horaire.getJoursSemaine());
+            toSave.setMonth(horaire.getMonth());
+            toSave.setYear(horaire.getYear());
+            toSave.setHeureDebut(horaire.getHeureDebut());
+            toSave.setHeureFin(horaire.getHeureFin());
+            toSave.setStatus(horaire.getStatus());
+            toSave.setMedecin(horaire.getMedecin());
+
+            savedHoraires.add(horaireRepo.save(toSave));
+        }
+
+        return savedHoraires;
     }
 
     @Override
@@ -37,7 +68,7 @@ public class HoraireService implements IHoraire {
     @Override
     @Transactional(readOnly = true)
     public List<Horaire> getHorairesByMedecinId(Long medecinId) {
-        return horaireRepo.findByMedecinId(medecinId);
+        return horaireRepo.findAllByMedecinId(medecinId);
     }
 
     @Override

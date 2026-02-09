@@ -35,6 +35,8 @@ public class HoraireController {
                 h.setHeureDebut(dto.getHeureDebut());
                 h.setHeureFin(dto.getHeureFin());
                 h.setStatus(dto.getStatus());
+                h.setMonth(dto.getMonth());
+                h.setYear(dto.getYear());
 
                 Medecin m = medecinRepo.findById(dto.getMedecinId())
                         .orElseThrow(() -> new RuntimeException("Medecin not found"));
@@ -70,10 +72,10 @@ public class HoraireController {
     }
 
     // Get by medecin
-    @GetMapping("/medecin/{medecinId}")
-    public ResponseEntity<List<Horaire>> getHorairesByMedecin(@PathVariable Long medecinId) {
-        return ResponseEntity.ok(horaireService.getHorairesByMedecinId(medecinId));
-    }
+        @GetMapping("/medecin/{medecinId}")
+        public ResponseEntity<List<Horaire>> getHorairesByMedecin(@PathVariable Long medecinId) {
+            return ResponseEntity.ok(horaireService.getHorairesByMedecinId(medecinId));
+        }
 
     // Get by jour
     @GetMapping("/jour/{joursSemaine}")

@@ -1,6 +1,7 @@
 package org.example.backend_med.Models;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -18,9 +19,13 @@ public class Horaire {
     private Long idHoraire;
     private String joursSemaine;
     private String heureDebut;
+    private String month;
+    private String year;
+
     private String heureFin;
     private String status;
     @ManyToOne
     @JoinColumn(name = "medecin_id")
+    @JsonIgnoreProperties({"horairesDisponibles", "rendezVous", "specialites"})
     private Medecin medecin;
 }
