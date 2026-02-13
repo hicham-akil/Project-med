@@ -9,7 +9,7 @@ public interface IMedecin {
     Medecin createMedecin(Medecin medecin);
     Optional<Medecin> getMedecinById(Long id);
     List<Medecin> getAllMedecins();
-    List<Medecin> getMedecinsBySpecialite(String specialite);
+    List<Medecin> getMedecinsBySpecialite(Long specialite);
     Optional<Medecin> getMedecinByEmail(String email);
     Optional<Medecin> getMedecinByTelephone(String telephone);
     List<Medecin> getAvailableMedecins();

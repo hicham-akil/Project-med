@@ -48,9 +48,9 @@ public class MedecinController {
     }
 
     // Get medecins by specialite
-    @GetMapping("/specialite/{specialite}")
-    public ResponseEntity<List<Medecin>> getMedecinsBySpecialite(@PathVariable String specialite) {
-        List<Medecin> medecins = medecinService.getMedecinsBySpecialite(specialite);
+    @GetMapping("/specialite/{specialiteId}")
+    public ResponseEntity<List<Medecin>> getMedecinsBySpecialite(@PathVariable Long specialiteId) {
+        List<Medecin> medecins = medecinService.getMedecinsBySpecialite(specialiteId);
         return ResponseEntity.ok(medecins);
     }
 

@@ -71,8 +71,8 @@ public class MedecinService implements IMedecin {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Medecin> getMedecinsBySpecialite(String specialite) {
-        return medecinRepo.findBySpecialiteName(specialite);
+    public List<Medecin> getMedecinsBySpecialite(Long specialite) {
+        return medecinRepo.findBySpecialiteId(specialite);
     }
 
     @Override
