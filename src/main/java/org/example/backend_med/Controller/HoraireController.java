@@ -1,5 +1,6 @@
 package org.example.backend_med.Controller;
 
+import org.example.backend_med.Dto.AvailableHoraireDTO;
 import org.example.backend_med.Dto.HoraireDTO;
 import org.example.backend_med.Models.Horaire;
 import org.example.backend_med.Models.Medecin;
@@ -71,11 +72,15 @@ public class HoraireController {
         return ResponseEntity.ok(horaireService.getAllHoraires());
     }
 
-    // Get by medecin
-        @GetMapping("/medecin/{medecinId}")
-        public ResponseEntity<List<Horaire>> getHorairesByMedecin(@PathVariable Long medecinId) {
-            return ResponseEntity.ok(horaireService.getHorairesByMedecinId(medecinId));
-        }
+    @GetMapping("/medecin/{medecinId}/available")
+    public ResponseEntity<List<Horaire>> getAvailableHorairesByMedecin(@PathVariable Long medecinId) {
+        return ResponseEntity.ok(horaireService.getAvailableHorairesByMedecinId(medecinId));
+    }
+    @GetMapping("/medecin/{medecinId}/available-slots")
+    public ResponseEntity<List<AvailableHoraireDTO>> getAvailableHorairesWithSlots(@PathVariable Long medecinId) {
+        return ResponseEntity.ok(horaireService.getAvailableHorairesWithSlots(medecinId));
+    }
+
 
     // Get by jour
     @GetMapping("/jour/{joursSemaine}")

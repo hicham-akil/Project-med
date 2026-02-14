@@ -1,4 +1,4 @@
-package org.example.backend_med.Services;
+package org.example.backend_med.Controller;
 
 import org.example.backend_med.Models.RendezVous;
 
@@ -23,7 +23,13 @@ public interface IRendezVous {
     List<RendezVous> getPastRendezVousByPatientId(Long patientId);
     RendezVous updateRendezVous(Long id, RendezVous rendezVous);
     RendezVous updateRendezVousStatus(Long id, String status);
+
+    // Old method for backward compatibility
+    RendezVous rescheduleRendezVous(Long id, LocalDateTime newDateTime);
+
+    // New method with start and end times
     RendezVous rescheduleRendezVous(Long id, LocalDateTime newStartDateTime, LocalDateTime newEndDateTime);
+
     RendezVous confirmRendezVous(Long id);
     RendezVous cancelRendezVous(Long id);
     void deleteRendezVous(Long id);
