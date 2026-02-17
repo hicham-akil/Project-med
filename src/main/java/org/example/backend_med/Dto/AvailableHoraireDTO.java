@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -15,5 +17,5 @@ public class AvailableHoraireDTO {
     private String status;
     private Long medecinId;
     private String medecinNom;
-    private boolean partiallyBooked; // Indicates if original horaire was split
+    private boolean partiallyBooked;
 }

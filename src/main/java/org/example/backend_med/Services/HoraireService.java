@@ -59,7 +59,35 @@ public class HoraireService implements IHoraire {
 
         return savedHoraires;
     }
+    @Transactional(readOnly = true)
+    public List<AvailableHoraireDTO> getAvailableTimeForDoctorOnDate(Long medecinId, LocalDate date) {
+        List<AvailableHoraireDTO> result = new ArrayList<>();
 
+        List<Horaire> activeHoraires = horaireRepo.findAvailableHorairesByMedecinId(medecinId);
+
+        List<RendezVous> allAppointments = rendezVousRepo.findByMedecinId(medecinId);
+
+        for (Horaire horaire : activeHoraires) {
+            DayOfWeek targetDay = DayOfWeek.valueOf(horaire.getJoursSemaine());
+            LocalDate nextDate = date.with(java.time.temporal.TemporalAdjusters.nextOrSame(targetDay));
+
+            LocalDateTime startOfDay = nextDate.atStartOfDay();
+            LocalDateTime endOfDay = nextDate.atTime(LocalTime.MAX);
+
+            List<RendezVous> dayAppointments = allAppointments.stream()
+                    .filter(rdv -> !rdv.getDateHeureDebut().isBefore(startOfDay)
+                            && !rdv.getDateHeureDebut().isAfter(endOfDay))
+                    .filter(rdv -> !"ANNULE".equals(rdv.getStatus()))
+                    .sorted(Comparator.comparing(RendezVous::getDateHeureDebut))
+                    .collect(Collectors.toList());
+
+            result.addAll(calculateAvailableTimeRanges(horaire, dayAppointments));
+        }
+
+        result.sort(Comparator.comparing(AvailableHoraireDTO::getJoursSemaine));
+
+        return result;
+    }
     @Override
     @Transactional(readOnly = true)
     public Optional<Horaire> getHoraireById(Long id) {

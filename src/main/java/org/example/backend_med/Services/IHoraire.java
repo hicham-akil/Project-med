@@ -3,6 +3,7 @@ package org.example.backend_med.Services;
 import org.example.backend_med.Dto.AvailableHoraireDTO;
 import org.example.backend_med.Models.Horaire;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,4 +19,6 @@ public interface IHoraire {
     List<Horaire> getHorairesByMedecinAndJour(Long medecinId, String joursSemaine);
     Horaire updateHoraire(Long id, Horaire horaire);
     void deleteHoraire(Long id);
+
+    List<AvailableHoraireDTO> getAvailableTimeForDoctorOnDate(Long medecinId, LocalDate date);
 }

@@ -8,10 +8,12 @@ import org.example.backend_med.Repository.MedecinRepo;
 import org.example.backend_med.Services.IHoraire;
 import org.example.backend_med.Services.IMedecin;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -76,8 +78,17 @@ public class HoraireController {
         return ResponseEntity.ok((horaireService.getHorairesByMedecinId(medecinId)));
     }
     @GetMapping("/medecin/{medecinId}/available")
-    public ResponseEntity<List<Horaire>> getAvailableHorairesByMedecin(@PathVariable Long medecinId) {
-        return ResponseEntity.ok(horaireService.getAvailableHorairesByMedecinId(medecinId));
+    public ResponseEntity<List<AvailableHoraireDTO>> getAvailableTime(
+            @PathVariable Long medecinId,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+
+        if (date == null) date = LocalDate.now();
+
+        List<AvailableHoraireDTO> available = horaireService
+                .getAvailableTimeForDoctorOnDate(medecinId, date);
+
+        return ResponseEntity.ok(available); // ← toujours 200, même si vide []
     }
     @GetMapping("/medecin/{medecinId}/available-slots")
     public ResponseEntity<List<AvailableHoraireDTO>> getAvailableHorairesWithSlots(@PathVariable Long medecinId) {

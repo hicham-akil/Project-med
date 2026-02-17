@@ -2,6 +2,8 @@ package org.example.backend_med.Dto;
 
 import lombok.Data;
 
+import java.time.LocalDate;
+
 @Data
 public class HoraireDTO {
     private String joursSemaine;

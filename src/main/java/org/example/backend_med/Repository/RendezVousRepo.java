@@ -73,6 +73,5 @@ public interface RendezVousRepo extends JpaRepository<RendezVous, Long> {
     // Count by medecin and date
     @Query("SELECT COUNT(r) FROM RendezVous r WHERE r.medecin.id = :medecinId AND CAST(r.dateHeureDebut AS date) = :date")
     long countByMedecinAndDate(@Param("medecinId") Long medecinId, @Param("date") LocalDate date);
-
     List<RendezVous> findByMedecinId(Long medecinId);
 }
