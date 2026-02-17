@@ -71,7 +71,10 @@ public class HoraireController {
     public ResponseEntity<List<Horaire>> getAllHoraires() {
         return ResponseEntity.ok(horaireService.getAllHoraires());
     }
-
+    @GetMapping("/medecin/{medecinId}")
+    public  ResponseEntity<List<Horaire>> getallhorrairebyidmed(@PathVariable Long medecinId) {
+        return ResponseEntity.ok((horaireService.getHorairesByMedecinId(medecinId)));
+    }
     @GetMapping("/medecin/{medecinId}/available")
     public ResponseEntity<List<Horaire>> getAvailableHorairesByMedecin(@PathVariable Long medecinId) {
         return ResponseEntity.ok(horaireService.getAvailableHorairesByMedecinId(medecinId));
