@@ -3,10 +3,12 @@ package org.example.backend_med.Controller;
 import lombok.RequiredArgsConstructor;
 import org.example.backend_med.Models.Medecin;
 import org.example.backend_med.Services.IMedecin;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,156 +20,122 @@ public class MedecinController {
 
     private final IMedecin medecinService;
 
-    // Create a new medecin
     @PostMapping
     public ResponseEntity<?> createMedecin(@RequestBody Medecin medecin) {
         try {
-            Medecin createdMedecin = medecinService.createMedecin(medecin);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdMedecin);
+            return ResponseEntity.status(HttpStatus.CREATED).body(medecinService.createMedecin(medecin));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 
-    // Get medecin by ID
     @GetMapping("/{id}")
     public ResponseEntity<?> getMedecinById(@PathVariable Long id) {
         Optional<Medecin> medecin = medecinService.getMedecinById(id);
-        if (medecin.isPresent()) {
-            return ResponseEntity.ok(medecin.get());
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body("Médecin non trouvé avec l'ID: " + id);
+        return medecin.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
-    // Get all medecins
     @GetMapping
     public ResponseEntity<List<Medecin>> getAllMedecins() {
-        List<Medecin> medecins = medecinService.getAllMedecins();
-        return ResponseEntity.ok(medecins);
+        return ResponseEntity.ok(medecinService.getAllMedecins());
     }
 
-    // Get medecins by specialite
     @GetMapping("/specialite/{specialiteId}")
     public ResponseEntity<List<Medecin>> getMedecinsBySpecialite(@PathVariable Long specialiteId) {
-        List<Medecin> medecins = medecinService.getMedecinsBySpecialite(specialiteId);
-        return ResponseEntity.ok(medecins);
+        return ResponseEntity.ok(medecinService.getMedecinsBySpecialite(specialiteId));
     }
 
-    // Get medecin by email
     @GetMapping("/email/{email}")
     public ResponseEntity<?> getMedecinByEmail(@PathVariable String email) {
         Optional<Medecin> medecin = medecinService.getMedecinByEmail(email);
-        if (medecin.isPresent()) {
-            return ResponseEntity.ok(medecin.get());
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body("Médecin non trouvé avec l'email: " + email);
+        return medecin.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
-    // Get medecin by telephone
     @GetMapping("/telephone/{telephone}")
     public ResponseEntity<?> getMedecinByTelephone(@PathVariable String telephone) {
         Optional<Medecin> medecin = medecinService.getMedecinByTelephone(telephone);
-        if (medecin.isPresent()) {
-            return ResponseEntity.ok(medecin.get());
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body("Médecin non trouvé avec le téléphone: " + telephone);
+        return medecin.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
-    // Get available medecins
     @GetMapping("/disponibles")
     public ResponseEntity<List<Medecin>> getAvailableMedecins() {
-        List<Medecin> medecins = medecinService.getAvailableMedecins();
-        return ResponseEntity.ok(medecins);
+        return ResponseEntity.ok(medecinService.getAvailableMedecins());
     }
 
-    // Get available medecins by day
-    @GetMapping("/disponibles/jour/{jour}")
-    public ResponseEntity<List<Medecin>> getAvailableMedecinsByDay(@PathVariable String jour) {
-        List<Medecin> medecins = medecinService.getAvailableMedecinsByDay(jour);
-        return ResponseEntity.ok(medecins);
+    // ✅ Replaced /jour/{jour} with ?date=2026-03-03
+    @GetMapping("/disponibles/date")
+    public ResponseEntity<List<Medecin>> getAvailableMedecinsByDate(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(medecinService.getAvailableMedecinsByDate(date));
     }
 
-    // Get available medecins by day and specialite
-    @GetMapping("/disponibles/jour/{jour}/specialite/{specialiteId}")
-    public ResponseEntity<List<Medecin>> getAvailableMedecinsByDayAndSpecialite(
-            @PathVariable String jour,
+    // ✅ Replaced /jour/{jour}/specialite/{id} with ?date=...&specialiteId=...
+    @GetMapping("/disponibles/date/specialite/{specialiteId}")
+    public ResponseEntity<List<Medecin>> getAvailableMedecinsByDateAndSpecialite(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @PathVariable Long specialiteId) {
-        List<Medecin> medecins = medecinService.getAvailableMedecinsByDayAndSpecialite(jour, specialiteId);
-        return ResponseEntity.ok(medecins);
+        return ResponseEntity.ok(medecinService.getAvailableMedecinsByDateAndSpecialite(date, specialiteId));
     }
 
-    // Get available medecins by day and time
-    @GetMapping("/disponibles/jour/{jour}/heure/{heure}")
-    public ResponseEntity<List<Medecin>> getAvailableMedecinsByDayAndTime(
-            @PathVariable String jour,
-            @PathVariable String heure) {
-        List<Medecin> medecins = medecinService.getAvailableMedecinsByDayAndTime(jour, heure);
-        return ResponseEntity.ok(medecins);
+    // ✅ Replaced /jour/{jour}/heure/{heure} with ?date=...&heure=...
+    @GetMapping("/disponibles/date/heure")
+    public ResponseEntity<List<Medecin>> getAvailableMedecinsByDateAndTime(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam String heure) {
+        return ResponseEntity.ok(medecinService.getAvailableMedecinsByDateAndTime(date, heure));
     }
 
-    // Get available medecins by day, time and specialite
-    @GetMapping("/disponibles/jour/{jour}/heure/{heure}/specialite/{specialiteId}")
-    public ResponseEntity<List<Medecin>> getAvailableMedecinsByDayTimeAndSpecialite(
-            @PathVariable String jour,
-            @PathVariable String heure,
+    // ✅ Replaced /jour/{jour}/heure/{heure}/specialite/{id} with ?date=...&heure=...
+    @GetMapping("/disponibles/date/heure/specialite/{specialiteId}")
+    public ResponseEntity<List<Medecin>> getAvailableMedecinsByDateTimeAndSpecialite(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam String heure,
             @PathVariable Long specialiteId) {
-        List<Medecin> medecins = medecinService.getAvailableMedecinsByDayTimeAndSpecialite(jour, heure, specialiteId);
-        return ResponseEntity.ok(medecins);
+        return ResponseEntity.ok(medecinService.getAvailableMedecinsByDateTimeAndSpecialite(date, heure, specialiteId));
     }
 
-    // Get available medecins by specialite
     @GetMapping("/disponibles/specialite/{specialiteId}")
     public ResponseEntity<List<Medecin>> getAvailableMedecinsBySpecialite(@PathVariable Long specialiteId) {
-        List<Medecin> medecins = medecinService.getAvailableMedecinsBySpecialite(specialiteId);
-        return ResponseEntity.ok(medecins);
+        return ResponseEntity.ok(medecinService.getAvailableMedecinsBySpecialite(specialiteId));
     }
 
-    // Search medecins by name
     @GetMapping("/search")
     public ResponseEntity<List<Medecin>> searchMedecinsByName(@RequestParam String name) {
-        List<Medecin> medecins = medecinService.searchMedecinsByName(name);
-        return ResponseEntity.ok(medecins);
+        return ResponseEntity.ok(medecinService.searchMedecinsByName(name));
     }
 
-    // Update medecin
     @PutMapping("/{id}")
     public ResponseEntity<?> updateMedecin(@PathVariable Long id, @RequestBody Medecin medecin) {
         try {
-            Medecin updatedMedecin = medecinService.updateMedecin(id, medecin);
-            return ResponseEntity.ok(updatedMedecin);
+            return ResponseEntity.ok(medecinService.updateMedecin(id, medecin));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 
-    // Update medecin availability
     @PatchMapping("/{id}/disponibilite")
     public ResponseEntity<?> updateMedecinAvailability(
             @PathVariable Long id,
             @RequestParam boolean isAvailable) {
         try {
-            Medecin updatedMedecin = medecinService.updateMedecinAvailability(id, isAvailable);
-            return ResponseEntity.ok(updatedMedecin);
+            return ResponseEntity.ok(medecinService.updateMedecinAvailability(id, isAvailable));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 
-    // Deactivate medecin
     @PatchMapping("/{id}/desactiver")
     public ResponseEntity<?> deactivateMedecin(@PathVariable Long id) {
         try {
-            Medecin deactivatedMedecin = medecinService.deactivateMedecin(id);
-            return ResponseEntity.ok(deactivatedMedecin);
+            return ResponseEntity.ok(medecinService.deactivateMedecin(id));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 
-    // Delete medecin
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteMedecin(@PathVariable Long id) {
         try {
@@ -178,31 +146,23 @@ public class MedecinController {
         }
     }
 
-    // Check if medecin exists by ID
     @GetMapping("/{id}/existe")
     public ResponseEntity<Boolean> existsById(@PathVariable Long id) {
-        boolean exists = medecinService.existsById(id);
-        return ResponseEntity.ok(exists);
+        return ResponseEntity.ok(medecinService.existsById(id));
     }
 
-    // Check if medecin exists by email
     @GetMapping("/email/{email}/existe")
     public ResponseEntity<Boolean> existsByEmail(@PathVariable String email) {
-        boolean exists = medecinService.existsByEmail(email);
-        return ResponseEntity.ok(exists);
+        return ResponseEntity.ok(medecinService.existsByEmail(email));
     }
 
-    // Count all medecins
     @GetMapping("/count")
     public ResponseEntity<Long> countMedecins() {
-        long count = medecinService.countMedecins();
-        return ResponseEntity.ok(count);
+        return ResponseEntity.ok(medecinService.countMedecins());
     }
 
-    // Count medecins by specialite
     @GetMapping("/count/specialite/{specialite}")
     public ResponseEntity<Long> countMedecinsBySpecialite(@PathVariable String specialite) {
-        long count = medecinService.countMedecinsBySpecialite(specialite);
-        return ResponseEntity.ok(count);
+        return ResponseEntity.ok(medecinService.countMedecinsBySpecialite(specialite));
     }
 }

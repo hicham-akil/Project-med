@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.Generated;
 
+import java.time.LocalDate;
+
 @Entity
 @Data
 @JsonIdentityInfo(
@@ -17,13 +19,13 @@ public class Horaire {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idHoraire;
-    private String joursSemaine;
-    private String heureDebut;
-    private String month;
-    private String year;
 
-    private String heureFin;
+    private LocalDate date;        // ✅ replaces joursSemaine + month + year
+
+    private String heureDebut;     // keep as "HH:mm"
+    private String heureFin;       // keep as "HH:mm"
     private String status;
+
     @ManyToOne
     @JoinColumn(name = "medecin_id")
     @JsonIgnoreProperties({"horairesDisponibles", "rendezVous", "specialites"})

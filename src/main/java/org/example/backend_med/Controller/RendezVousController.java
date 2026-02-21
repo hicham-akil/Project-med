@@ -1,6 +1,10 @@
 package org.example.backend_med.Controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.backend_med.Dto.CreateRendezVousRequest;
+import org.example.backend_med.Models.Horaire;
+import org.example.backend_med.Models.Medecin;
+import org.example.backend_med.Models.Patient;
 import org.example.backend_med.Models.RendezVous;
 import org.example.backend_med.Services.IRendezVous;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -23,9 +27,9 @@ public class RendezVousController {
 
     // Create a new rendez-vous
     @PostMapping
-    public ResponseEntity<?> createRendezVous(@RequestBody RendezVous rendezVous) {
+    public ResponseEntity<?> create(@RequestBody CreateRendezVousRequest request) {
         try {
-            RendezVous created = rendezVousService.createRendezVous(rendezVous);
+            RendezVous created = rendezVousService.createRendezVous(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());

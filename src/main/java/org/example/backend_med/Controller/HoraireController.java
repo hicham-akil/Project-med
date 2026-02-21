@@ -21,25 +21,26 @@ import java.util.Optional;
 @RequestMapping("/api/horaires")
 @CrossOrigin(origins = "*")
 public class HoraireController {
+
     @Autowired
     private MedecinRepo medecinRepo;
+
     @Autowired
     private IHoraire horaireService;
+
     @Autowired
     private IMedecin medecinService;
 
-    // Create
+    // ✅ Create — now uses date instead of joursSemaine/month/year
     @PostMapping
     public ResponseEntity<?> createHoraire(@RequestBody List<HoraireDTO> horairesDto) {
         try {
             List<Horaire> horaires = horairesDto.stream().map(dto -> {
                 Horaire h = new Horaire();
-                h.setJoursSemaine(dto.getJoursSemaine());
+                h.setDate(dto.getDate());
                 h.setHeureDebut(dto.getHeureDebut());
                 h.setHeureFin(dto.getHeureFin());
                 h.setStatus(dto.getStatus());
-                h.setMonth(dto.getMonth());
-                h.setYear(dto.getYear());
 
                 Medecin m = medecinRepo.findById(dto.getMedecinId())
                         .orElseThrow(() -> new RuntimeException("Medecin not found"));
@@ -55,7 +56,6 @@ public class HoraireController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
-
 
     // Get by ID
     @GetMapping("/{id}")
@@ -73,10 +73,14 @@ public class HoraireController {
     public ResponseEntity<List<Horaire>> getAllHoraires() {
         return ResponseEntity.ok(horaireService.getAllHoraires());
     }
+
+    // Get all by medecin
     @GetMapping("/medecin/{medecinId}")
-    public  ResponseEntity<List<Horaire>> getallhorrairebyidmed(@PathVariable Long medecinId) {
-        return ResponseEntity.ok((horaireService.getHorairesByMedecinId(medecinId)));
+    public ResponseEntity<List<Horaire>> getAllHorairesByMedecin(@PathVariable Long medecinId) {
+        return ResponseEntity.ok(horaireService.getHorairesByMedecinId(medecinId));
     }
+
+    // ✅ Get available slots for a doctor — filtered by date
     @GetMapping("/medecin/{medecinId}/available")
     public ResponseEntity<List<AvailableHoraireDTO>> getAvailableTime(
             @PathVariable Long medecinId,
@@ -88,18 +92,21 @@ public class HoraireController {
         List<AvailableHoraireDTO> available = horaireService
                 .getAvailableTimeForDoctorOnDate(medecinId, date);
 
-        return ResponseEntity.ok(available); // ← toujours 200, même si vide []
+        return ResponseEntity.ok(available);
     }
+
+    // Get available slots with partial booking info
     @GetMapping("/medecin/{medecinId}/available-slots")
-    public ResponseEntity<List<AvailableHoraireDTO>> getAvailableHorairesWithSlots(@PathVariable Long medecinId) {
+    public ResponseEntity<List<AvailableHoraireDTO>> getAvailableHorairesWithSlots(
+            @PathVariable Long medecinId) {
         return ResponseEntity.ok(horaireService.getAvailableHorairesWithSlots(medecinId));
     }
 
-
-    // Get by jour
-    @GetMapping("/jour/{joursSemaine}")
-    public ResponseEntity<List<Horaire>> getHorairesByJour(@PathVariable String joursSemaine) {
-        return ResponseEntity.ok(horaireService.getHorairesByJour(joursSemaine));
+    // ✅ Get by date (replaces /jour/{joursSemaine})
+    @GetMapping("/date/{date}")
+    public ResponseEntity<List<Horaire>> getHorairesByDate(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(horaireService.getHorairesByDate(date));
     }
 
     // Get by status
@@ -108,12 +115,12 @@ public class HoraireController {
         return ResponseEntity.ok(horaireService.getHorairesByStatus(status));
     }
 
-    // Get by medecin and jour
-    @GetMapping("/medecin/{medecinId}/jour/{joursSemaine}")
-    public ResponseEntity<List<Horaire>> getHorairesByMedecinAndJour(
+    // ✅ Get by medecin and date (replaces /medecin/{id}/jour/{jour})
+    @GetMapping("/medecin/{medecinId}/date/{date}")
+    public ResponseEntity<List<Horaire>> getHorairesByMedecinAndDate(
             @PathVariable Long medecinId,
-            @PathVariable String joursSemaine) {
-        return ResponseEntity.ok(horaireService.getHorairesByMedecinAndJour(medecinId, joursSemaine));
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(horaireService.getHorairesByMedecinAndDate(medecinId, date));
     }
 
     // Update

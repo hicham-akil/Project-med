@@ -12,11 +12,11 @@ public interface IHoraire {
     Optional<Horaire> getHoraireById(Long id);
     List<Horaire> getAllHoraires();
     List<Horaire> getHorairesByMedecinId(Long medecinId);
+    List<Horaire> getHorairesByDate(LocalDate date);           // ✅ replaces getHorairesByJour
+    List<Horaire> getHorairesByStatus(String status);
+    List<Horaire> getHorairesByMedecinAndDate(Long medecinId, LocalDate date); // ✅ replaces getHorairesByMedecinAndJour
     List<Horaire> getAvailableHorairesByMedecinId(Long medecinId);
     List<AvailableHoraireDTO> getAvailableHorairesWithSlots(Long medecinId);
-    List<Horaire> getHorairesByJour(String joursSemaine);
-    List<Horaire> getHorairesByStatus(String status);
-    List<Horaire> getHorairesByMedecinAndJour(Long medecinId, String joursSemaine);
     Horaire updateHoraire(Long id, Horaire horaire);
     void deleteHoraire(Long id);
 
