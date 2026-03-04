@@ -9,5 +9,5 @@ public record RendezVousResponseDto(
         String status,
         Long medecinId,
         String medecinNom,
-        String medecinSpecialite
+        String specialite
 ) {}

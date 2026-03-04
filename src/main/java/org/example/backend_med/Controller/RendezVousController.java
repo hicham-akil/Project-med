@@ -2,6 +2,7 @@ package org.example.backend_med.Controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend_med.Dto.CreateRendezVousRequest;
+import org.example.backend_med.Dto.RendezVousResponseDto;
 import org.example.backend_med.Models.Horaire;
 import org.example.backend_med.Models.Medecin;
 import org.example.backend_med.Models.Patient;
@@ -52,7 +53,7 @@ public class RendezVousController {
     }
 
     @GetMapping("/patient/{patientId}")
-    public ResponseEntity<List<RendezVous>> getRendezVousByPatient(@PathVariable Long patientId) {
+    public  ResponseEntity< List<RendezVousResponseDto>>  getRendezVousByPatient(@PathVariable Long patientId) {
         return ResponseEntity.ok(rendezVousService.getRendezVousByPatientId(patientId));
     }
 

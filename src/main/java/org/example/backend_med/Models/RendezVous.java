@@ -41,4 +41,8 @@ public class RendezVous {
     @ManyToOne
     @JoinColumn(name = "horaire_id")
     private Horaire horaire;
+    @ManyToOne
+    @JoinColumn(name = "specialite_id") // ✅ Foreign key column
+    private Specialite specialite;
+
 }

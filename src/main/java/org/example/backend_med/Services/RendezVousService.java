@@ -2,11 +2,9 @@ package org.example.backend_med.Services;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend_med.Dto.CreateRendezVousRequest;
+import org.example.backend_med.Dto.RendezVousResponseDto;
 import org.example.backend_med.Models.*;
-import org.example.backend_med.Repository.HoraireRepo;
-import org.example.backend_med.Repository.MedecinRepo;
-import org.example.backend_med.Repository.PatientRepo;
-import org.example.backend_med.Repository.RendezVousRepo;
+import org.example.backend_med.Repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,10 +29,12 @@ public class RendezVousService implements IRendezVous {
     private MedecinRepo medecinRepo;
     @Autowired
     private HoraireRepo horaireRepo;
-
+    @Autowired
+    private SpecialiteRepo specialiteRepo;
+    @Autowired
+    private SpecialiteRepo SpecialiteRepo;
     @Override
     public RendezVous createRendezVous(CreateRendezVousRequest req) {
-        // 1️⃣ Fetch entities
         Patient patient = patientRepo.findById(req.getPatientId())
                 .orElseThrow(() -> new IllegalArgumentException("Patient not found"));
 
@@ -44,44 +44,41 @@ public class RendezVousService implements IRendezVous {
         Horaire horaire = horaireRepo.findById(req.getHoraireId())
                 .orElseThrow(() -> new IllegalArgumentException("Horaire not found"));
 
-        // 2️⃣ Parse times
+        // ✅ Fetch specialite by ID
+        Specialite specialite = specialiteRepo.findById(req.getSpecialiteId())
+                .orElseThrow(() -> new IllegalArgumentException("Spécialité not found"));
+
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("HH:mm");
         LocalTime startTime = LocalTime.parse(req.getHeureDebut(), fmt);
         LocalTime endTime   = LocalTime.parse(req.getHeureFin(), fmt);
-
-        // ✅ Date comes from horaire — no mismatch possible
         LocalDateTime start = LocalDateTime.of(horaire.getDate(), startTime);
         LocalDateTime end   = LocalDateTime.of(horaire.getDate(), endTime);
 
-        // 3️⃣ Duration rule (1h–2h)
+        // Duration check
         long duration = Duration.between(start, end).toMinutes();
-        if (duration < 60 || duration > 120) {
+        if (duration < 60 || duration > 120)
             throw new IllegalArgumentException("Durée invalide (1h–2h)");
-        }
 
-        // 4️⃣ Check within horaire time range
-        if (!isWithinHoraire(horaire, start, end)) {
+        // Check within horaire
+        if (!isWithinHoraire(horaire, start, end))
             throw new IllegalArgumentException("Médecin indisponible");
-        }
 
-        // 5️⃣ Check no overlapping appointments
-        if (!isTimeSlotAvailable(medecin.getId(), start, end)) {
+        // Check overlapping appointments
+        if (!isTimeSlotAvailable(medecin.getId(), start, end))
             throw new IllegalArgumentException("Créneau déjà réservé");
-        }
 
-        // 6️⃣ Build and save
+        // Create RendezVous
         RendezVous rdv = new RendezVous();
         rdv.setPatient(patient);
         rdv.setMedecin(medecin);
         rdv.setHoraire(horaire);
+        rdv.setSpecialite(specialite); // <-- set entity
         rdv.setDateHeureDebut(start);
         rdv.setDateHeureFin(end);
         rdv.setStatus("EN_ATTENTE");
 
         return rendezVousRepo.save(rdv);
-    }
-
-    // ✅ Simple check: is the appointment within the horaire's time range and date?
+    }// ✅ Simple check: is the appointment within the horaire's time range and date?
     private boolean isWithinHoraire(Horaire horaire, LocalDateTime start, LocalDateTime end) {
         if (!"ACTIVE".equals(horaire.getStatus())) return false;
 
@@ -129,11 +126,23 @@ public class RendezVousService implements IRendezVous {
     public List<RendezVous> getAllRendezVous() {
         return rendezVousRepo.findAllByOrderByDateHeureDebutDesc();
     }
-
     @Override
     @Transactional(readOnly = true)
-    public List<RendezVous> getRendezVousByPatientId(Long patientId) {
-        return rendezVousRepo.findByPatientId(patientId);
+    public List<RendezVousResponseDto> getRendezVousByPatientId(Long patientId) {
+        List<RendezVous> rendezVousList = rendezVousRepo.findByPatientId(patientId);
+
+        // Map RendezVous -> RendezVousResponseDto
+        return rendezVousList.stream()
+                .map(rdv -> new RendezVousResponseDto(
+                        rdv.getId(),
+                        rdv.getDateHeureDebut(),
+                        rdv.getDateHeureFin(),
+                        rdv.getStatus(),
+                        rdv.getMedecin() != null ? rdv.getMedecin().getId() : null,
+                        rdv.getMedecin() != null ? rdv.getMedecin().getNom() : null,
+                        rdv.getSpecialite().getNomspecialite()// ✅ use the specialite column
+                ))
+                .toList();
     }
 
     @Override

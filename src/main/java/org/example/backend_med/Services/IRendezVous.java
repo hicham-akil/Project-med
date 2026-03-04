@@ -1,6 +1,7 @@
 package org.example.backend_med.Services;
 
 import org.example.backend_med.Dto.CreateRendezVousRequest;
+import org.example.backend_med.Dto.RendezVousResponseDto;
 import org.example.backend_med.Models.RendezVous;
 
 import java.time.LocalDate;
@@ -12,7 +13,7 @@ public interface IRendezVous {
     RendezVous createRendezVous(CreateRendezVousRequest request);
     Optional<RendezVous> getRendezVousById(Long id);
     List<RendezVous> getAllRendezVous();
-    List<RendezVous> getRendezVousByPatientId(Long patientId);
+    List<RendezVousResponseDto> getRendezVousByPatientId(Long patientId);
     List<RendezVous> getRendezVousByMedecinId(Long medecinId);
     List<RendezVous> getRendezVousByDate(LocalDate date);
     List<RendezVous> getRendezVousByDateRange(LocalDate startDate, LocalDate endDate);
