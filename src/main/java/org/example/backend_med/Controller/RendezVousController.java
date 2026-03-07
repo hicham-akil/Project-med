@@ -58,7 +58,7 @@ public class RendezVousController {
     }
 
     @GetMapping("/medecin/{medecinId}")
-    public ResponseEntity<List<RendezVous>> getRendezVousByMedecin(@PathVariable Long medecinId) {
+    public ResponseEntity<List<RendezVousResponseDto>> getRendezVousByMedecin(@PathVariable Long medecinId) {
         return ResponseEntity.ok(rendezVousService.getRendezVousByMedecinId(medecinId));
     }
 

@@ -14,7 +14,7 @@ public interface IRendezVous {
     Optional<RendezVous> getRendezVousById(Long id);
     List<RendezVous> getAllRendezVous();
     List<RendezVousResponseDto> getRendezVousByPatientId(Long patientId);
-    List<RendezVous> getRendezVousByMedecinId(Long medecinId);
+    List<RendezVousResponseDto> getRendezVousByMedecinId(Long medecinId);
     List<RendezVous> getRendezVousByDate(LocalDate date);
     List<RendezVous> getRendezVousByDateRange(LocalDate startDate, LocalDate endDate);
     List<RendezVous> getRendezVousByStatus(String status);

@@ -8,6 +8,7 @@ public record RendezVousResponseDto(
         LocalDateTime dateHeureFin,
         String status,
         Long medecinId,
+        String patientnom,
         String medecinNom,
         String specialite
 ) {}

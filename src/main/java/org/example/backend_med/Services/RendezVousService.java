@@ -72,7 +72,7 @@ public class RendezVousService implements IRendezVous {
         rdv.setPatient(patient);
         rdv.setMedecin(medecin);
         rdv.setHoraire(horaire);
-        rdv.setSpecialite(specialite); // <-- set entity
+        rdv.setSpecialite(specialite);
         rdv.setDateHeureDebut(start);
         rdv.setDateHeureFin(end);
         rdv.setStatus("EN_ATTENTE");
@@ -139,7 +139,9 @@ public class RendezVousService implements IRendezVous {
                         rdv.getDateHeureFin(),
                         rdv.getStatus(),
                         rdv.getMedecin() != null ? rdv.getMedecin().getId() : null,
+                        rdv.getPatient() !=null ? rdv.getPatient().getNom() :null,
                         rdv.getMedecin() != null ? rdv.getMedecin().getNom() : null,
+
                         rdv.getSpecialite().getNomspecialite()// ✅ use the specialite column
                 ))
                 .toList();
@@ -147,8 +149,23 @@ public class RendezVousService implements IRendezVous {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RendezVous> getRendezVousByMedecinId(Long medecinId) {
-        return rendezVousRepo.findAllByMedecinId(medecinId);
+    public List<RendezVousResponseDto> getRendezVousByMedecinId(Long medecinId) {
+        List<RendezVous> rendezVousList =rendezVousRepo.findAllByMedecinId(medecinId);
+
+        // Map RendezVous -> RendezVousResponseDto
+        return rendezVousList.stream()
+                .map(rdv -> new RendezVousResponseDto(
+                        rdv.getId(),
+                        rdv.getDateHeureDebut(),
+                        rdv.getDateHeureFin(),
+                        rdv.getStatus(),
+                        rdv.getMedecin() != null ? rdv.getMedecin().getId() : null,
+                        rdv.getPatient() !=null ? rdv.getPatient().getNom() :null,
+
+                        rdv.getMedecin() != null ? rdv.getMedecin().getNom() : null,
+                        rdv.getSpecialite().getNomspecialite()// ✅ use the specialite column
+                ))
+                .toList();
     }
 
     @Override
