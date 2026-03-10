@@ -1,6 +1,8 @@
 package org.example.backend_med.Repository;
 
+import org.example.backend_med.Dto.RendezVousResponseDto;
 import org.example.backend_med.Models.RendezVous;
+import org.example.backend_med.Models.RendezVousStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -69,8 +71,7 @@ public interface RendezVousRepo extends JpaRepository<RendezVous, Long> {
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime
     );
-
-    // Count by medecin and date
+     // Count by medecin and date
     @Query("SELECT COUNT(r) FROM RendezVous r WHERE r.medecin.id = :medecinId AND CAST(r.dateHeureDebut AS date) = :date")
     long countByMedecinAndDate(@Param("medecinId") Long medecinId, @Param("date") LocalDate date);
     List<RendezVous> findByMedecinId(Long medecinId);

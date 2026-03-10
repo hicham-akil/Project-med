@@ -3,10 +3,8 @@ package org.example.backend_med.Controller;
 import lombok.RequiredArgsConstructor;
 import org.example.backend_med.Dto.CreateRendezVousRequest;
 import org.example.backend_med.Dto.RendezVousResponseDto;
-import org.example.backend_med.Models.Horaire;
-import org.example.backend_med.Models.Medecin;
-import org.example.backend_med.Models.Patient;
-import org.example.backend_med.Models.RendezVous;
+import org.example.backend_med.Dto.UpdateStatusRequest;
+import org.example.backend_med.Models.*;
 import org.example.backend_med.Services.IRendezVous;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -72,7 +70,22 @@ public class RendezVousController {
     public ResponseEntity<?> updateRendezVous(@PathVariable Long id, @RequestBody RendezVous rendezVous) {
         return ResponseEntity.ok(rendezVousService.updateRendezVous(id, rendezVous));
     }
-
+    @PutMapping("/{id}/status")
+    public ResponseEntity<?> updateStatus(
+            @PathVariable Long id,
+            @RequestBody UpdateStatusRequest request) {
+        try {
+            if (request.getStatus() == null || request.getStatus().isBlank()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Le statut est requis");
+            }
+            RendezVousResponseDto updated = rendezVousService.updateStatus(id, request.getStatus());
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteRendezVous(@PathVariable Long id) {
         rendezVousService.deleteRendezVous(id);

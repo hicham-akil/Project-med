@@ -104,6 +104,30 @@ public class RendezVousService implements IRendezVous {
         Horaire horaire = horaires.get(0);
         return isWithinHoraire(horaire, start, end);
     }
+    @Override
+    public RendezVousResponseDto updateStatus(Long id, String status) {
+        RendezVous rdv = rendezVousRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Rendez-vous introuvable : " + id));
+
+        List<String> validStatuses = List.of("PENDING", "CONFIRMED", "COMPLETED", "CANCELLED");
+        if (!validStatuses.contains(status.toUpperCase())) {
+            throw new IllegalArgumentException("Statut invalide : " + status);
+        }
+
+        rdv.setStatus(status.toUpperCase());
+        RendezVous saved = rendezVousRepo.save(rdv);
+
+        return new RendezVousResponseDto(
+                saved.getId(),
+                saved.getDateHeureDebut(),
+                saved.getDateHeureFin(),
+                saved.getStatus(),
+                saved.getMedecin() != null ? saved.getMedecin().getId() : null,
+                saved.getPatient() != null ? saved.getPatient().getNom() : null,
+                saved.getMedecin() != null ? saved.getMedecin().getNom() : null,
+                saved.getSpecialite() != null ? saved.getSpecialite().getNomspecialite() : null
+        );
+    }
 
     private boolean isTimeSlotAvailable(Long medecinId, LocalDateTime startTime, LocalDateTime endTime) {
         long overlapping = rendezVousRepo.countOverlappingAppointments(

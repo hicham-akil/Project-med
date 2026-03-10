@@ -3,6 +3,7 @@ package org.example.backend_med.Services;
 import org.example.backend_med.Dto.CreateRendezVousRequest;
 import org.example.backend_med.Dto.RendezVousResponseDto;
 import org.example.backend_med.Models.RendezVous;
+import org.example.backend_med.Models.RendezVousStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -14,6 +15,7 @@ public interface IRendezVous {
     Optional<RendezVous> getRendezVousById(Long id);
     List<RendezVous> getAllRendezVous();
     List<RendezVousResponseDto> getRendezVousByPatientId(Long patientId);
+    RendezVousResponseDto updateStatus(Long id, String status);
     List<RendezVousResponseDto> getRendezVousByMedecinId(Long medecinId);
     List<RendezVous> getRendezVousByDate(LocalDate date);
     List<RendezVous> getRendezVousByDateRange(LocalDate startDate, LocalDate endDate);
