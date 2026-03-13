@@ -128,13 +128,12 @@ public class HoraireService implements IHoraire {
     public List<AvailableHoraireDTO> getAvailableHorairesWithSlots(Long medecinId) {
         List<Horaire> activeHoraires = horaireRepo.findAvailableHorairesByMedecinId(medecinId);
         List<RendezVous> allAppointments = rendezVousRepo.findByMedecinId(medecinId);
-
+        LocalDate today = LocalDate.now();
         List<AvailableHoraireDTO> availableSlots = new ArrayList<>();
 
         for (Horaire horaire : activeHoraires) {
-            // ✅ Skip horaires with null date (old data before migration)
             if (horaire.getDate() == null) continue;
-
+            if (horaire.getDate().isBefore(today)) continue;
             List<RendezVous> dayAppointments = allAppointments.stream()
                     .filter(rdv -> rdv.getDateHeureDebut().toLocalDate().equals(horaire.getDate()))
                     .filter(rdv -> !"ANNULE".equals(rdv.getStatus()))
@@ -143,6 +142,7 @@ public class HoraireService implements IHoraire {
 
             availableSlots.addAll(calculateAvailableTimeRanges(horaire, dayAppointments));
         }
+        availableSlots.sort(Comparator.comparing(AvailableHoraireDTO::getDate));
 
         return availableSlots;
     }
