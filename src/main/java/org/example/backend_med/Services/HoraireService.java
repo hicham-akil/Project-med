@@ -2,7 +2,6 @@ package org.example.backend_med.Services;
 
 import org.example.backend_med.Dto.AvailableHoraireDTO;
 import org.example.backend_med.Models.Horaire;
-import org.example.backend_med.Models.RendezVous;
 import org.example.backend_med.Repository.HoraireRepo;
 import org.example.backend_med.Repository.RendezVousRepo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -23,6 +21,7 @@ public class HoraireService implements IHoraire {
     @Autowired
     private RendezVousRepo rendezVousRepo;
 
+    // ── CREATE / UPDATE ──────────────────────────────────────────
     @Override
     public List<Horaire> createHoraire(List<Horaire> horaires) {
         List<Horaire> savedHoraires = new ArrayList<>();
@@ -53,34 +52,32 @@ public class HoraireService implements IHoraire {
         return savedHoraires;
     }
 
-    @Transactional(readOnly = true)
-    public List<AvailableHoraireDTO> getAvailableTimeForDoctorOnDate(Long medecinId, LocalDate date) {
-        List<Horaire> activeHoraires = horaireRepo.findAvailableHorairesByMedecinId(medecinId);
-        List<RendezVous> allAppointments = rendezVousRepo.findByMedecinId(medecinId);
+    @Override
+    public Horaire updateHoraire(Long id, Horaire horaire) {
+        Horaire existing = horaireRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Horaire non trouvé avec l'ID: " + id));
 
-        List<AvailableHoraireDTO> result = new ArrayList<>();
+        existing.setDate(horaire.getDate());
+        existing.setHeureDebut(horaire.getHeureDebut());
+        existing.setHeureFin(horaire.getHeureFin());
+        existing.setStatus(horaire.getStatus());
 
-        for (Horaire horaire : activeHoraires) {
-            // Only process horaires matching the requested date
-            if (!horaire.getDate().equals(date)) continue;
-
-            LocalDateTime startOfDay = horaire.getDate().atStartOfDay();
-            LocalDateTime endOfDay = horaire.getDate().atTime(LocalTime.MAX);
-
-            List<RendezVous> dayAppointments = allAppointments.stream()
-                    .filter(rdv -> !rdv.getDateHeureDebut().isBefore(startOfDay)
-                            && !rdv.getDateHeureDebut().isAfter(endOfDay))
-                    .filter(rdv -> !"ANNULE".equals(rdv.getStatus()))
-                    .sorted(Comparator.comparing(RendezVous::getDateHeureDebut))
-                    .collect(Collectors.toList());
-
-            result.addAll(calculateAvailableTimeRanges(horaire, dayAppointments));
+        if (horaire.getMedecin() != null) {
+            existing.setMedecin(horaire.getMedecin());
         }
 
-        result.sort(Comparator.comparing(AvailableHoraireDTO::getDate));
-        return result;
+        return horaireRepo.save(existing);
     }
 
+    @Override
+    public void deleteHoraire(Long id) {
+        if (!horaireRepo.existsById(id)) {
+            throw new IllegalArgumentException("Horaire non trouvé avec l'ID: " + id);
+        }
+        horaireRepo.deleteById(id);
+    }
+
+    // ── READ ─────────────────────────────────────────────────────
     @Override
     @Transactional(readOnly = true)
     public Optional<Horaire> getHoraireById(Long id) {
@@ -123,37 +120,22 @@ public class HoraireService implements IHoraire {
         return horaireRepo.findAvailableHorairesByMedecinId(medecinId);
     }
 
+    // ── QUEUE-COMPATIBLE: available slots (just returns active days) ──
     @Override
     @Transactional(readOnly = true)
     public List<AvailableHoraireDTO> getAvailableHorairesWithSlots(Long medecinId) {
         List<Horaire> activeHoraires = horaireRepo.findAvailableHorairesByMedecinId(medecinId);
-        List<RendezVous> allAppointments = rendezVousRepo.findByMedecinId(medecinId);
         LocalDate today = LocalDate.now();
-        List<AvailableHoraireDTO> availableSlots = new ArrayList<>();
+        List<AvailableHoraireDTO> result = new ArrayList<>();
 
         for (Horaire horaire : activeHoraires) {
             if (horaire.getDate() == null) continue;
             if (horaire.getDate().isBefore(today)) continue;
-            List<RendezVous> dayAppointments = allAppointments.stream()
-                    .filter(rdv -> rdv.getDateHeureDebut().toLocalDate().equals(horaire.getDate()))
-                    .filter(rdv -> !"ANNULE".equals(rdv.getStatus()))
-                    .sorted(Comparator.comparing(RendezVous::getDateHeureDebut))
-                    .collect(Collectors.toList());
 
-            availableSlots.addAll(calculateAvailableTimeRanges(horaire, dayAppointments));
-        }
-        availableSlots.sort(Comparator.comparing(AvailableHoraireDTO::getDate));
+            // Count patients already in queue for this doctor on this day
+            long count = rendezVousRepo.countByMedecinAndDate(medecinId, horaire.getDate());
 
-        return availableSlots;
-    }
-    private List<AvailableHoraireDTO> calculateAvailableTimeRanges(Horaire horaire, List<RendezVous> appointments) {
-        List<AvailableHoraireDTO> availableRanges = new ArrayList<>();
-
-        LocalTime horaireStart = LocalTime.parse(horaire.getHeureDebut());
-        LocalTime horaireEnd = LocalTime.parse(horaire.getHeureFin());
-
-        if (appointments.isEmpty()) {
-            availableRanges.add(new AvailableHoraireDTO(
+            result.add(new AvailableHoraireDTO(
                     horaire.getIdHoraire(),
                     horaire.getDate(),
                     horaire.getHeureDebut(),
@@ -161,84 +143,40 @@ public class HoraireService implements IHoraire {
                     horaire.getStatus(),
                     horaire.getMedecin().getId(),
                     horaire.getMedecin().getNom(),
-                    false
+                    count > 0  // partiallyBooked = true if queue already has patients
             ));
-            return availableRanges;
         }
 
-        LocalTime currentStart = horaireStart;
-
-        for (RendezVous appointment : appointments) {
-            LocalTime appointmentStart = appointment.getDateHeureDebut().toLocalTime();
-            LocalTime appointmentEnd = appointment.getDateHeureFin().toLocalTime();
-
-            if (appointmentEnd.isBefore(horaireStart) || appointmentStart.isAfter(horaireEnd)) continue;
-
-            appointmentStart = appointmentStart.isBefore(horaireStart) ? horaireStart : appointmentStart;
-            appointmentEnd = appointmentEnd.isAfter(horaireEnd) ? horaireEnd : appointmentEnd;
-
-            if (currentStart.isBefore(appointmentStart)) {
-                long minutes = Duration.between(currentStart, appointmentStart).toMinutes();
-                // ✅ Only add if at least 60 min (minimum appointment duration)
-                if (minutes >= 60) {
-                    availableRanges.add(new AvailableHoraireDTO(
-                            horaire.getIdHoraire(),
-                            horaire.getDate(),
-                            currentStart.toString(),
-                            appointmentStart.toString(),
-                            horaire.getStatus(),
-                            horaire.getMedecin().getId(),
-                            horaire.getMedecin().getNom(),
-                            true
-                    ));
-                }
-            }
-
-            currentStart = appointmentEnd.isAfter(currentStart) ? appointmentEnd : currentStart;
-        }
-
-        if (currentStart.isBefore(horaireEnd)) {
-            long minutes = Duration.between(currentStart, horaireEnd).toMinutes();
-            // ✅ Only add if at least 60 min
-            if (minutes >= 60) {
-                availableRanges.add(new AvailableHoraireDTO(
-                        horaire.getIdHoraire(),
-                        horaire.getDate(),
-                        currentStart.toString(),
-                        horaireEnd.toString(),
-                        horaire.getStatus(),
-                        horaire.getMedecin().getId(),
-                        horaire.getMedecin().getNom(),
-                        true
-                ));
-            }
-        }
-
-        return availableRanges;
+        result.sort(Comparator.comparing(AvailableHoraireDTO::getDate));
+        return result;
     }
 
-    @Override
-    public Horaire updateHoraire(Long id, Horaire horaire) {
-        Horaire existing = horaireRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Horaire non trouvé avec l'ID: " + id));
+    // ── QUEUE-COMPATIBLE: available slots for a specific date ──
+    @Transactional(readOnly = true)
+    public List<AvailableHoraireDTO> getAvailableTimeForDoctorOnDate(Long medecinId, LocalDate date) {
+        List<Horaire> activeHoraires = horaireRepo.findAvailableHorairesByMedecinId(medecinId);
+        List<AvailableHoraireDTO> result = new ArrayList<>();
 
-        existing.setDate(horaire.getDate());
-        existing.setHeureDebut(horaire.getHeureDebut());
-        existing.setHeureFin(horaire.getHeureFin());
-        existing.setStatus(horaire.getStatus());
+        for (Horaire horaire : activeHoraires) {
+            if (horaire.getDate() == null) continue;
+            if (!horaire.getDate().equals(date)) continue;
 
-        if (horaire.getMedecin() != null) {
-            existing.setMedecin(horaire.getMedecin());
+            long count = rendezVousRepo.countByMedecinAndDate(medecinId, horaire.getDate());
+
+            result.add(new AvailableHoraireDTO(
+                    horaire.getIdHoraire(),
+                    horaire.getDate(),
+                    horaire.getHeureDebut(),
+                    horaire.getHeureFin(),
+                    horaire.getStatus(),
+                    horaire.getMedecin().getId(),
+                    horaire.getMedecin().getNom(),
+                    count > 0
+            ));
         }
 
-        return horaireRepo.save(existing);
+        result.sort(Comparator.comparing(AvailableHoraireDTO::getDate));
+        return result;
     }
 
-    @Override
-    public void deleteHoraire(Long id) {
-        if (!horaireRepo.existsById(id)) {
-            throw new IllegalArgumentException("Horaire non trouvé avec l'ID: " + id);
-        }
-        horaireRepo.deleteById(id);
-    }
 }

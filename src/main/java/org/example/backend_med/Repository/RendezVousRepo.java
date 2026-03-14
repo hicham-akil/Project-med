@@ -98,4 +98,5 @@ public interface RendezVousRepo extends JpaRepository<RendezVous, Long> {
     );
 
 
+    List<RendezVous> findByMedecinId(Long medecinId);
 }

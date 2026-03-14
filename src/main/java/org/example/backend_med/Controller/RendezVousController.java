@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend_med.Dto.CreateRendezVousRequest;
 import org.example.backend_med.Dto.RendezVousResponseDto;
 import org.example.backend_med.Dto.UpdateStatusRequest;
-import org.example.backend_med.Models.*;
+import org.example.backend_med.Models.RendezVous;
 import org.example.backend_med.Services.IRendezVous;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -12,9 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/rendezvous")
@@ -24,7 +22,7 @@ public class RendezVousController {
 
     private final IRendezVous rendezVousService;
 
-    // Create a new rendez-vous
+    // ── BOOK appointment (patient books, gets queue number) ──
     @PostMapping
     public ResponseEntity<?> create(@RequestBody CreateRendezVousRequest request) {
         try {
@@ -35,41 +33,60 @@ public class RendezVousController {
         }
     }
 
-    // Get rendez-vous by ID
+    // ── NEXT PATIENT — doctor clicks "Next" ──
+    @PostMapping("/medecin/{medecinId}/next")
+    public ResponseEntity<?> callNext(@PathVariable Long medecinId) {
+        try {
+            RendezVousResponseDto next = rendezVousService.callNextPatient(medecinId);
+            return ResponseEntity.ok(next);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+    // ── TODAY'S QUEUE for a doctor ──
+    @GetMapping("/medecin/{medecinId}/queue")
+    public ResponseEntity<List<RendezVousResponseDto>> getTodayQueue(
+            @PathVariable Long medecinId) {
+        return ResponseEntity.ok(rendezVousService.getTodayQueueByMedecin(medecinId));
+    }
+
+    // ── GET by ID ──
     @GetMapping("/{id}")
-    public ResponseEntity<RendezVous> getRendezVousById(@PathVariable Long id) {
+    public ResponseEntity<RendezVous> getById(@PathVariable Long id) {
         return rendezVousService.getRendezVousById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-
-    // Get all rendez-vous
+    // ── GET all ──
     @GetMapping
-    public ResponseEntity<List<RendezVous>> getAllRendezVous() {
+    public ResponseEntity<List<RendezVous>> getAll() {
         return ResponseEntity.ok(rendezVousService.getAllRendezVous());
     }
 
+    // ── GET by patient ──
     @GetMapping("/patient/{patientId}")
-    public  ResponseEntity< List<RendezVousResponseDto>>  getRendezVousByPatient(@PathVariable Long patientId) {
+    public ResponseEntity<List<RendezVousResponseDto>> getByPatient(
+            @PathVariable Long patientId) {
         return ResponseEntity.ok(rendezVousService.getRendezVousByPatientId(patientId));
     }
 
+    // ── GET by medecin ──
     @GetMapping("/medecin/{medecinId}")
-    public ResponseEntity<List<RendezVousResponseDto>> getRendezVousByMedecin(@PathVariable Long medecinId) {
+    public ResponseEntity<List<RendezVousResponseDto>> getByMedecin(
+            @PathVariable Long medecinId) {
         return ResponseEntity.ok(rendezVousService.getRendezVousByMedecinId(medecinId));
     }
 
+    // ── GET by date ──
     @GetMapping("/date/{date}")
-    public ResponseEntity<List<RendezVous>> getRendezVousByDate(
+    public ResponseEntity<List<RendezVous>> getByDate(
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ResponseEntity.ok(rendezVousService.getRendezVousByDate(date));
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateRendezVous(@PathVariable Long id, @RequestBody RendezVous rendezVous) {
-        return ResponseEntity.ok(rendezVousService.updateRendezVous(id, rendezVous));
-    }
+    // ── UPDATE STATUS (manual override) ──
     @PutMapping("/{id}/status")
     public ResponseEntity<?> updateStatus(
             @PathVariable Long id,
@@ -78,17 +95,32 @@ public class RendezVousController {
             if (request.getStatus() == null || request.getStatus().isBlank()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Le statut est requis");
             }
-            RendezVousResponseDto updated = rendezVousService.updateStatus(id, request.getStatus());
-            return ResponseEntity.ok(updated);
+            return ResponseEntity.ok(rendezVousService.updateStatus(id, request.getStatus()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
+
+    // ── CANCEL ──
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<?> cancel(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(rendezVousService.cancelRendezVous(id));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+    // ── DELETE ──
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteRendezVous(@PathVariable Long id) {
-        rendezVousService.deleteRendezVous(id);
-        return ResponseEntity.ok("Rendez-vous supprimé avec succès");
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        try {
+            rendezVousService.deleteRendezVous(id);
+            return ResponseEntity.ok("Rendez-vous supprimé avec succès");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
     }
 }
