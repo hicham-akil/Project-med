@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface RendezVousRepo extends JpaRepository<RendezVous, Long> {
@@ -71,8 +72,30 @@ public interface RendezVousRepo extends JpaRepository<RendezVous, Long> {
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime
     );
-     // Count by medecin and date
-    @Query("SELECT COUNT(r) FROM RendezVous r WHERE r.medecin.id = :medecinId AND CAST(r.dateHeureDebut AS date) = :date")
-    long countByMedecinAndDate(@Param("medecinId") Long medecinId, @Param("date") LocalDate date);
-    List<RendezVous> findByMedecinId(Long medecinId);
+
+
+
+
+    @Query("SELECT r FROM RendezVous r WHERE r.medecin.id = :medecinId " +
+            "AND DATE(r.dateHeureDebut) = :date AND r.status = 'EN_ATTENTE' " +
+            "ORDER BY r.queueNumber ASC")
+    List<RendezVous> findWaitingByMedecinAndDate(
+            @Param("medecinId") Long medecinId,
+            @Param("date") LocalDate date
+    );
+
+    // Find currently in-progress appointment for a doctor
+    @Query("SELECT r FROM RendezVous r WHERE r.medecin.id = :medecinId " +
+            "AND r.status = 'EN_COURS'")
+    Optional<RendezVous> findInProgressByMedecin(@Param("medecinId") Long medecinId);
+
+    // Count appointments for a doctor on a specific date (for queue numbering)
+    @Query("SELECT COUNT(r) FROM RendezVous r WHERE r.medecin.id = :medecinId " +
+            "AND DATE(r.dateHeureDebut) = :date AND r.status != 'ANNULE'")
+    long countByMedecinAndDate(
+            @Param("medecinId") Long medecinId,
+            @Param("date") LocalDate date
+    );
+
+
 }

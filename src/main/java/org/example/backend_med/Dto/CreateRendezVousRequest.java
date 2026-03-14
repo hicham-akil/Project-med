@@ -13,8 +13,6 @@ public class CreateRendezVousRequest {
     private Long horaireId;
 
     private LocalDate date;
-    private String heureDebut;
-    private String heureFin;
     private Long specialiteId;
 
 }

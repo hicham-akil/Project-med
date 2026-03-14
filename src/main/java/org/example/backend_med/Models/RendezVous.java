@@ -45,4 +45,6 @@ public class RendezVous {
     @JoinColumn(name = "specialite_id") // ✅ Foreign key column
     private Specialite specialite;
 
+    @Column(name = "queue_number")
+    private Integer queueNumber;
 }

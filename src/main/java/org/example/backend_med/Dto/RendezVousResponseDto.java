@@ -10,5 +10,6 @@ public record RendezVousResponseDto(
         Long medecinId,
         String patientnom,
         String medecinNom,
-        String specialite
+        String specialite,
+        Integer queueNumber
 ) {}
