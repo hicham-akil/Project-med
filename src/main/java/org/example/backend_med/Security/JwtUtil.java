@@ -10,33 +10,37 @@ import java.util.Date;
 
 @Component
 public class JwtUtil {
-    @Value("${jwt.secret}")
-    private  String SECRET_KEY;
-    @Value("${jwt.expiration}")
-    private  long EXPIRATION_MS;
 
-    public String GenerateJwtToken(String name, String role,Long user_id){
-       return Jwts.builder()
-               .setSubject(name)
-               .claim("role",role)
-               .claim("user_id",user_id)
-               .setIssuedAt(new Date())
-               .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_MS))
-               .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
-               .compact();
+    @Value("${jwt.secret}")
+    private String SECRET_KEY;
+
+    @Value("${jwt.expiration}")
+    private long EXPIRATION_MS;
+
+    public String GenerateJwtToken(String name, String role, Long userId) {
+        return Jwts.builder()
+                .setSubject(name)
+                .claim("role", role)
+                .claim("user_id", userId)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_MS))
+                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                .compact();
     }
-    public boolean validateJwtToken(String token){
+
+    public boolean validateJwtToken(String token) {
         try {
-             Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token);
-             return true;
-        }catch (Exception e){
+            Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token);
+            return true;
+        } catch (Exception e) {
             return false;
         }
     }
+
     public Claims getClaims(String token) {
-        return Jwts.parser().setSigningKey(SECRET_KEY)
-                .parseClaimsJws(token).getBody();
+        return Jwts.parser()
+                .setSigningKey(SECRET_KEY)
+                .parseClaimsJws(token)
+                .getBody();
     }
-
-
 }

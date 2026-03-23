@@ -2,14 +2,15 @@ package org.example.backend_med.Security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import io.jsonwebtoken.Claims;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import io.jsonwebtoken.Claims;
 
 import java.io.IOException;
 import java.util.List;
@@ -28,32 +29,35 @@ public class JwtFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
+        String token = null;
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("token".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
 
-            if (jwtUtil.validateJwtToken(token)) {
-                // Extract claims
+        try {
+            if (token != null && jwtUtil.validateJwtToken(token)) {
                 Claims claims = jwtUtil.getClaims(token);
                 String username = claims.getSubject();
                 String role = (String) claims.get("role");
 
-                // Create Spring authentication
-                List<SimpleGrantedAuthority> authorities =
-                        List.of(new SimpleGrantedAuthority(role)); // Must match role in your token
                 UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(username, null, authorities);
-
-                // Set authentication in SecurityContext
+                        new UsernamePasswordAuthenticationToken(
+                                username,
+                                null,
+                                List.of(new SimpleGrantedAuthority(role))
+                        );
                 SecurityContextHolder.getContext().setAuthentication(auth);
-            } else {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Invalid JWT token");
-                return;
             }
+        } catch (Exception e) {
+            e.printStackTrace(); // just log invalid token
         }
 
-        filterChain.doFilter(request, response);
+        filterChain.doFilter(request, response); // let Spring handle 401 if not authenticated
     }
 }
