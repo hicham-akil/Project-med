@@ -62,6 +62,21 @@ public class RendezVousService implements IRendezVous {
         rdv.setQueueNumber(queueNumber);
         rdv.setStatus("EN_ATTENTE");
 
+        try {
+            notificationService.notify(
+                    patient, // or medecin depending on logic
+                    "Votre rendez-vous est confirmé avec le médecin " + medecin.getNom(),
+                    NotificationType.PATIENT
+            );
+            notificationService.notify(
+                    medecin,
+                    "Vous avez un nouveau rendez-vous avec le patient " + patient.getNom(),
+                    NotificationType.MEDECIN
+            );
+        } catch (Exception e) {
+            System.err.println("❌ NOTIFICATION ERROR");
+            e.printStackTrace();
+        }
         return rendezVousRepo.save(rdv);
     }
 

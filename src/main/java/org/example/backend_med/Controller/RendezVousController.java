@@ -36,14 +36,16 @@ public class RendezVousController {
     // ── NEXT PATIENT — doctor clicks "Next" ──
     @PostMapping("/medecin/{medecinId}/next")
     public ResponseEntity<?> callNext(@PathVariable Long medecinId) {
+        System.out.println("callNextPatient medecinId = " + medecinId); // debug
         try {
             RendezVousResponseDto next = rendezVousService.callNextPatient(medecinId);
+            System.out.println("Patient trouvé : " + next); // debug
             return ResponseEntity.ok(next);
         } catch (IllegalStateException e) {
+            System.out.println("Aucun patient trouvé : " + e.getMessage()); // debug
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
-
     // ── TODAY'S QUEUE for a doctor ──
     @GetMapping("/medecin/{medecinId}/queue")
     public ResponseEntity<List<RendezVousResponseDto>> getTodayQueue(
@@ -112,6 +114,7 @@ public class RendezVousController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
+
 
     // ── DELETE ──
     @DeleteMapping("/{id}")
