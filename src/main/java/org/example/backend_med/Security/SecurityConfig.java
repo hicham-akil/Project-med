@@ -35,10 +35,7 @@
                     .authorizeHttpRequests(auth -> auth
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                             .requestMatchers("/api/auth/**").permitAll()
-                            .requestMatchers(HttpMethod.GET, "/api/specialites/**").permitAll()
-                            .requestMatchers(HttpMethod.POST, "/api/rendezvous/**").permitAll()
                             .requestMatchers("/api/**").authenticated()
-                            .requestMatchers(HttpMethod.POST, "/api/specialites/**").permitAll()
                             .anyRequest().permitAll()
                     )
                     .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
