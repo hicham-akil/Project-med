@@ -30,13 +30,18 @@ public class RendezVousService implements IRendezVous {
     // ─────────────────────────────────────────────
     @Override
     public RendezVous createRendezVous(CreateRendezVousRequest req) {
-        System.out.println(">>> patientId: " + req.getPatientId());
-        System.out.println(">>> medecinId: " + req.getMedecinId());
-        System.out.println(">>> horaireId: " + req.getHoraireId());
-        System.out.println(">>> specialiteId: " + req.getSpecialiteId());
+
         Patient patient = patientRepo.findById(req.getPatientId())
                 .orElseThrow(() -> new IllegalArgumentException("Patient introuvable"));
+        Integer count = rendezVousRepo.countByPatientIdAndMedecinIdAndStatusNot(
+                req.getPatientId(),
+                req.getMedecinId(),
+                "ANNULE"
+        );
 
+        if (count != null && count >= 1) {
+            throw new IllegalStateException("Vous avez déjà un rendez-vous actif avec ce médecin");
+        }
         Medecin medecin = medecinRepo.findById(req.getMedecinId())
                 .orElseThrow(() -> new IllegalArgumentException("Médecin introuvable"));
 
