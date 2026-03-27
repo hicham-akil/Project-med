@@ -34,6 +34,7 @@
                     .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                     .authorizeHttpRequests(auth -> auth
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                            .requestMatchers("/api/specialites/**").permitAll()
                             .requestMatchers("/api/auth/**").permitAll()
                             .requestMatchers("/api/**").authenticated()
                             .anyRequest().permitAll()
