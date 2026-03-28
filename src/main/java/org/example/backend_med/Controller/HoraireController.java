@@ -31,25 +31,42 @@ public class HoraireController {
     @Autowired
     private IMedecin medecinService;
 
-    // ✅ Create — now uses date instead of joursSemaine/month/year
     @PostMapping
     public ResponseEntity<?> createHoraire(@RequestBody List<HoraireDTO> horairesDto) {
         try {
+
             List<Horaire> horaires = horairesDto.stream().map(dto -> {
+
                 Horaire h = new Horaire();
+
+                // DATE (LocalDate)
                 h.setDate(dto.getDate());
+
+                // TIME (LocalTime)
+                if (dto.getHeureDebut() == null || dto.getHeureFin() == null) {
+                    throw new IllegalArgumentException("HeureDebut et HeureFin sont obligatoires");
+                }
+
+                if (dto.getHeureDebut().isAfter(dto.getHeureFin())) {
+                    throw new IllegalArgumentException("HeureDebut doit être avant HeureFin");
+                }
+
                 h.setHeureDebut(dto.getHeureDebut());
                 h.setHeureFin(dto.getHeureFin());
+
                 h.setStatus(dto.getStatus());
 
+                // MEDICAL RELATION
                 Medecin m = medecinRepo.findById(dto.getMedecinId())
                         .orElseThrow(() -> new RuntimeException("Medecin not found"));
+
                 h.setMedecin(m);
 
                 return h;
             }).toList();
 
             List<Horaire> created = horaireService.createHoraire(horaires);
+
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
 
         } catch (Exception e) {

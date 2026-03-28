@@ -8,6 +8,7 @@ import lombok.Data;
 import org.hibernate.annotations.Generated;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
 @Data
@@ -22,8 +23,8 @@ public class Horaire {
 
     private LocalDate date;        // ✅ replaces joursSemaine + month + year
 
-    private String heureDebut;     // keep as "HH:mm"
-    private String heureFin;       // keep as "HH:mm"
+    private LocalTime heureDebut;
+    private LocalTime heureFin;
     private String status;
 
     @ManyToOne

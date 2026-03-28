@@ -24,22 +24,50 @@ public class HoraireService implements IHoraire {
     // ── CREATE / UPDATE ──────────────────────────────────────────
     @Override
     public List<Horaire> createHoraire(List<Horaire> horaires) {
-        List<Horaire> savedHoraires = new ArrayList<>();
 
+        List<Horaire> savedHoraires = new ArrayList<>();
         for (Horaire horaire : horaires) {
+
+            // ── VALIDATION ─────────────────────────────
+            if (horaire.getDate() == null) {
+                throw new IllegalArgumentException("Date is required");
+            }
+
+            if (horaire.getHeureDebut() == null || horaire.getHeureFin() == null) {
+                throw new IllegalArgumentException("HeureDebut and HeureFin are required");
+            }
+
+            if (horaire.getHeureDebut().isAfter(horaire.getHeureFin())) {
+                throw new IllegalArgumentException("HeureDebut must be before HeureFin");
+            }
+
+            if (horaire.getMedecin() == null || horaire.getMedecin().getId() == null) {
+                throw new IllegalArgumentException("Medecin is required");
+            }
+
+
             Horaire toSave;
 
+            // ── UPDATE MODE ─────────────────────────────
             if (horaire.getIdHoraire() != null) {
+
                 toSave = horaireRepo.findById(horaire.getIdHoraire())
-                        .orElse(new Horaire());
-            } else {
+                        .orElseThrow(() -> new IllegalArgumentException("Horaire not found"));
+
+            }
+            // ── CREATE OR MERGE MODE ────────────────────
+            else {
+
                 List<Horaire> existing = horaireRepo.findByMedecinIdAndDate(
                         horaire.getMedecin().getId(),
                         horaire.getDate()
                 );
+
+                // If exists → update first one (your current logic)
                 toSave = existing.isEmpty() ? new Horaire() : existing.get(0);
             }
 
+            // ── ASSIGN VALUES ───────────────────────────
             toSave.setDate(horaire.getDate());
             toSave.setHeureDebut(horaire.getHeureDebut());
             toSave.setHeureFin(horaire.getHeureFin());
@@ -51,7 +79,6 @@ public class HoraireService implements IHoraire {
 
         return savedHoraires;
     }
-
     @Override
     public Horaire updateHoraire(Long id, Horaire horaire) {
         Horaire existing = horaireRepo.findById(id)

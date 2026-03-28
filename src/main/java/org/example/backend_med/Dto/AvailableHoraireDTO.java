@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.Date;
 
 @Data
 @AllArgsConstructor
@@ -12,8 +14,8 @@ import java.time.LocalDate;
 public class AvailableHoraireDTO {
     private Long idHoraire;
     private LocalDate date;
-    private String heureDebut;
-    private String heureFin;
+    private LocalTime heureDebut;
+    private LocalTime heureFin;
     private String status;
     private Long medecinId;
     private String medecinNom;
