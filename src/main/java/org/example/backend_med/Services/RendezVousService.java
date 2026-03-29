@@ -30,18 +30,19 @@ public class RendezVousService implements IRendezVous {
     // ─────────────────────────────────────────────
     @Override
     public RendezVous createRendezVous(CreateRendezVousRequest req) {
-
         Patient patient = patientRepo.findById(req.getPatientId())
                 .orElseThrow(() -> new IllegalArgumentException("Patient introuvable"));
-        Integer count = rendezVousRepo.countByPatientIdAndMedecinIdAndStatusNot(
+
+        // Check direct : exclure ANNULE et TERMINE
+        boolean hasActive = rendezVousRepo.existsActiveRendezVous(
                 req.getPatientId(),
-                req.getMedecinId(),
-                "ANNULE"
+                req.getMedecinId()
         );
 
-        if (count != null && count >= 1) {
+        if (hasActive) {
             throw new IllegalStateException("Vous avez déjà un rendez-vous actif avec ce médecin");
         }
+
         Medecin medecin = medecinRepo.findById(req.getMedecinId())
                 .orElseThrow(() -> new IllegalArgumentException("Médecin introuvable"));
 
@@ -53,7 +54,6 @@ public class RendezVousService implements IRendezVous {
 
         LocalDate date = req.getDate();
 
-        // Assign queue number: how many non-cancelled bookings exist for this doctor today + 1
         long existingCount = rendezVousRepo.countByMedecinAndDate(medecin.getId(), date);
         int queueNumber = (int) existingCount + 1;
 
@@ -68,23 +68,19 @@ public class RendezVousService implements IRendezVous {
         rdv.setStatus("EN_ATTENTE");
 
         try {
-            notificationService.notify(
-                    patient, // or medecin depending on logic
+            notificationService.notify(patient,
                     "Votre rendez-vous est confirmé avec le médecin " + medecin.getNom(),
-                    NotificationType.PATIENT
-            );
-            notificationService.notify(
-                    medecin,
+                    NotificationType.PATIENT);
+            notificationService.notify(medecin,
                     "Vous avez un nouveau rendez-vous avec le patient " + patient.getNom(),
-                    NotificationType.MEDECIN
-            );
+                    NotificationType.MEDECIN);
         } catch (Exception e) {
             System.err.println("❌ NOTIFICATION ERROR");
             e.printStackTrace();
         }
+
         return rendezVousRepo.save(rdv);
     }
-
     // ─────────────────────────────────────────────
     // CALL NEXT — doctor clicks "Next Patient"
     // ─────────────────────────────────────────────
