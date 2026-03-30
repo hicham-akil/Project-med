@@ -24,19 +24,26 @@ public class RendezVousService implements IRendezVous {
     @Autowired private MedecinRepo medecinRepo;
     @Autowired private HoraireRepo horaireRepo;
     @Autowired private SpecialiteRepo specialiteRepo;
-
-    // ─────────────────────────────────────────────
-    // CREATE — patient books, gets a queue number
-    // ─────────────────────────────────────────────
     @Override
     public RendezVous createRendezVous(CreateRendezVousRequest req) {
         Patient patient = patientRepo.findById(req.getPatientId())
                 .orElseThrow(() -> new IllegalArgumentException("Patient introuvable"));
 
-        // Check direct : exclure ANNULE et TERMINE
         boolean hasActive = rendezVousRepo.existsActiveRendezVous(
                 req.getPatientId(),
                 req.getMedecinId()
+        );
+
+        System.out.println("=== DEBUG ===");
+        System.out.println("patientId: " + req.getPatientId());
+        System.out.println("medecinId: " + req.getMedecinId());
+        System.out.println("hasActive: " + hasActive);
+
+        rendezVousRepo.findByPatientId(req.getPatientId()).forEach(r ->
+                System.out.println("RDV id=" + r.getId()
+                        + " medecin=" + r.getMedecin().getId()
+                        + " status='" + r.getStatus() + "'"
+                        + " len=" + r.getStatus().length())
         );
 
         if (hasActive) {
@@ -62,8 +69,6 @@ public class RendezVousService implements IRendezVous {
         rdv.setMedecin(medecin);
         rdv.setHoraire(horaire);
         rdv.setSpecialite(specialite);
-        rdv.setDateHeureDebut(date.atStartOfDay());
-        rdv.setDateHeureFin(null);
         rdv.setQueueNumber(queueNumber);
         rdv.setStatus("EN_ATTENTE");
 
@@ -150,10 +155,10 @@ public class RendezVousService implements IRendezVous {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<RendezVous> getAllRendezVous() {
-        return rendezVousRepo.findAllByOrderByDateHeureDebutDesc();
+        return List.of();
     }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -170,55 +175,10 @@ public class RendezVousService implements IRendezVous {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<RendezVous> getRendezVousByDate(LocalDate date) {
-        return rendezVousRepo.findByDate(date);
+        return List.of();
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<RendezVous> getRendezVousByDateRange(LocalDate startDate, LocalDate endDate) {
-        return rendezVousRepo.findByDateRange(
-                startDate.atStartOfDay(),
-                endDate.atTime(LocalTime.MAX)
-        );
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<RendezVous> getRendezVousByStatus(String status) {
-        return rendezVousRepo.findByStatus(status);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<RendezVous> getRendezVousByMedecinAndDate(Long medecinId, LocalDate date) {
-        return rendezVousRepo.findByMedecinAndDate(medecinId, date);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<RendezVous> getRendezVousByPatientAndStatus(Long patientId, String status) {
-        return rendezVousRepo.findByPatientAndStatus(patientId, status);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<RendezVous> getUpcomingRendezVousByPatientId(Long patientId) {
-        return rendezVousRepo.findUpcomingByPatientId(patientId, LocalDateTime.now());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<RendezVous> getUpcomingRendezVousByMedecinId(Long medecinId) {
-        return rendezVousRepo.findUpcomingByMedecinId(medecinId, LocalDateTime.now());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<RendezVous> getPastRendezVousByPatientId(Long patientId) {
-        return rendezVousRepo.findPastByPatientId(patientId, LocalDateTime.now());
-    }
 
     @Override
     public RendezVous cancelRendezVous(Long id) {
@@ -242,14 +202,7 @@ public class RendezVousService implements IRendezVous {
         return rendezVousRepo.existsById(id);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public long countRendezVousByMedecinAndDate(Long medecinId, LocalDate date) {
-        return rendezVousRepo.countByMedecinAndDate(medecinId, date);
-    }
 
-    // Removed: rescheduleRendezVous, updateRendezVous (time-based),
-    //          isTimeSlotAvailable, isWithinHoraire, isWithinHorairesDisponibles
 
     // ─────────────────────────────────────────────
     // HELPER — entity to DTO
@@ -257,8 +210,7 @@ public class RendezVousService implements IRendezVous {
     private RendezVousResponseDto toDto(RendezVous rdv) {
         return new RendezVousResponseDto(
                 rdv.getId(),
-                rdv.getDateHeureDebut(),
-                rdv.getDateHeureFin(),
+
                 rdv.getStatus(),
                 rdv.getMedecin() != null ? rdv.getMedecin().getId() : null,
                 rdv.getPatient() != null ? rdv.getPatient().getNom() : null,

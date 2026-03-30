@@ -22,7 +22,6 @@ public class Notification {
 
     private String message;
 
-    // Rename field to avoid conflicts
     @Column(name = "is_read",nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
     private boolean isRead = false;
 

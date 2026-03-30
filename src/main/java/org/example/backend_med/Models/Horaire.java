@@ -21,7 +21,7 @@ public class Horaire {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idHoraire;
 
-    private LocalDate date;        // ✅ replaces joursSemaine + month + year
+    private LocalDate date;
 
     private LocalTime heureDebut;
     private LocalTime heureFin;

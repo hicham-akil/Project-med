@@ -20,14 +20,9 @@ public class RendezVous {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @Column(name = "date_heure_debut")
-    private LocalDateTime dateHeureDebut;  // Start date and time
 
-    @Column(name = "date_heure_fin")
-    private LocalDateTime dateHeureFin;    // End date and time
 
     private String status;
-    private String typeConsultation;
 
     @JsonBackReference
     @ManyToOne
@@ -42,7 +37,7 @@ public class RendezVous {
     @JoinColumn(name = "horaire_id")
     private Horaire horaire;
     @ManyToOne
-    @JoinColumn(name = "specialite_id") // ✅ Foreign key column
+    @JoinColumn(name = "specialite_id")
     private Specialite specialite;
 
     @Column(name = "queue_number")
