@@ -72,6 +72,7 @@ public class RendezVousService implements IRendezVous {
         rdv.setQueueNumber(queueNumber);
         rdv.setStatus("EN_ATTENTE");
 
+
         try {
             notificationService.notify(patient,
                     "Votre rendez-vous est confirmé avec le médecin " + medecin.getNom(),
@@ -80,7 +81,7 @@ public class RendezVousService implements IRendezVous {
                     "Vous avez un nouveau rendez-vous avec le patient " + patient.getNom(),
                     NotificationType.MEDECIN);
         } catch (Exception e) {
-            System.err.println("❌ NOTIFICATION ERROR");
+            System.err.println(" NOTIFICATION ERROR");
             e.printStackTrace();
         }
 
@@ -216,7 +217,8 @@ public class RendezVousService implements IRendezVous {
                 rdv.getPatient() != null ? rdv.getPatient().getNom() : null,
                 rdv.getMedecin() != null ? rdv.getMedecin().getNom() : null,
                 rdv.getSpecialite() != null ? rdv.getSpecialite().getNomspecialite() : null,
-                rdv.getQueueNumber()
+                rdv.getQueueNumber(),
+                rdv.getHoraire().getDate()
         );
     }
 }

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -32,7 +33,6 @@ public class RendezVous {
     @ManyToOne
     @JoinColumn(name = "medecin_id")
     private Medecin medecin;
-
     @ManyToOne
     @JoinColumn(name = "horaire_id")
     private Horaire horaire;
