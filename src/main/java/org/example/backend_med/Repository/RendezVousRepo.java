@@ -67,7 +67,7 @@ public interface RendezVousRepo extends JpaRepository<RendezVous, Long> {
     @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM RendezVous r " +
             "WHERE r.patient.id = :patientId " +
             "AND r.medecin.id = :medecinId " +
-            "AND r.status NOT IN ('ANNULE', 'TERMINE')")
+            "AND r.status NOT IN ('ANNULE', 'TERMINE', 'COMPLETED')")
     boolean existsActiveRendezVous(@Param("patientId") Long patientId,
                                    @Param("medecinId") Long medecinId);
 }
