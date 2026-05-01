@@ -70,4 +70,32 @@ public interface RendezVousRepo extends JpaRepository<RendezVous, Long> {
             "AND r.status NOT IN ('ANNULE', 'TERMINE', 'COMPLETED')")
     boolean existsActiveRendezVous(@Param("patientId") Long patientId,
                                    @Param("medecinId") Long medecinId);
+
+
+    @Query("""
+    SELECT COUNT(r) FROM RendezVous r
+    WHERE r.medecin.id = :medecinId
+      AND r.status = 'EN_ATTENTE'
+      AND r.queueNumber < :queueNumber
+      AND r.horaire.date = :date
+""")
+    long countPatientsBeforeInQueue(
+            @Param("medecinId") Long medecinId,
+            @Param("queueNumber") int queueNumber,
+            @Param("date") LocalDate date
+    );
+    @Query("""
+    SELECT r FROM RendezVous r
+    WHERE r.patient.id = :patientId
+      AND r.medecin.id = :medecinId
+      AND r.horaire.date = :date
+      AND r.status IN ('EN_ATTENTE', 'EN_COURS')
+""")
+    Optional<RendezVous> findActiveByPatientAndMedecinAndDate(
+            @Param("patientId") Long patientId,
+            @Param("medecinId") Long medecinId,
+            @Param("date") LocalDate date
+    );
+
+
 }

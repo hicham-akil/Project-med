@@ -5,6 +5,7 @@ import org.example.backend_med.Dto.CreateRendezVousRequest;
 import org.example.backend_med.Dto.RendezVousResponseDto;
 import org.example.backend_med.Models.*;
 import org.example.backend_med.Repository.*;
+import org.example.backend_med.websocket.QueueWebSocketHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,34 +19,25 @@ import java.util.Optional;
 @Transactional
 public class RendezVousService implements IRendezVous {
 
+    @Autowired private QueueWebSocketHandler wsHandler;
     @Autowired private RendezVousRepo rendezVousRepo;
     @Autowired private NotificationService notificationService;
     @Autowired private PatientRepo patientRepo;
     @Autowired private MedecinRepo medecinRepo;
     @Autowired private HoraireRepo horaireRepo;
     @Autowired private SpecialiteRepo specialiteRepo;
+
+    // ─────────────────────────────────────────────
+    // CREATE
+    // ─────────────────────────────────────────────
     @Override
     public RendezVous createRendezVous(CreateRendezVousRequest req) {
         Patient patient = patientRepo.findById(req.getPatientId())
                 .orElseThrow(() -> new IllegalArgumentException("Patient introuvable"));
 
         boolean hasActive = rendezVousRepo.existsActiveRendezVous(
-                req.getPatientId(),
-                req.getMedecinId()
+                req.getPatientId(), req.getMedecinId()
         );
-
-        System.out.println("=== DEBUG ===");
-        System.out.println("patientId: " + req.getPatientId());
-        System.out.println("medecinId: " + req.getMedecinId());
-        System.out.println("hasActive: " + hasActive);
-
-        rendezVousRepo.findByPatientId(req.getPatientId()).forEach(r ->
-                System.out.println("RDV id=" + r.getId()
-                        + " medecin=" + r.getMedecin().getId()
-                        + " status='" + r.getStatus() + "'"
-                        + " len=" + r.getStatus().length())
-        );
-
         if (hasActive) {
             throw new IllegalStateException("Vous avez déjà un rendez-vous actif avec ce médecin");
         }
@@ -59,9 +51,7 @@ public class RendezVousService implements IRendezVous {
         Specialite specialite = specialiteRepo.findById(req.getSpecialiteId())
                 .orElseThrow(() -> new IllegalArgumentException("Spécialité introuvable"));
 
-        LocalDate date = req.getDate();
-
-        long existingCount = rendezVousRepo.countByMedecinAndDate(medecin.getId(), date);
+        long existingCount = rendezVousRepo.countByMedecinAndDate(medecin.getId(), req.getDate());
         int queueNumber = (int) existingCount + 1;
 
         RendezVous rdv = new RendezVous();
@@ -72,6 +62,11 @@ public class RendezVousService implements IRendezVous {
         rdv.setQueueNumber(queueNumber);
         rdv.setStatus("EN_ATTENTE");
 
+        RendezVous saved = rendezVousRepo.save(rdv);
+
+        // ✅ WebSocket: push initial position to patient
+        // The handler queries the DB itself — no position math here
+        wsHandler.notifyPatient(patient.getId(), medecin.getId());
 
         try {
             notificationService.notify(patient,
@@ -81,36 +76,43 @@ public class RendezVousService implements IRendezVous {
                     "Vous avez un nouveau rendez-vous avec le patient " + patient.getNom(),
                     NotificationType.MEDECIN);
         } catch (Exception e) {
-            System.err.println(" NOTIFICATION ERROR");
+            System.err.println("NOTIFICATION ERROR");
             e.printStackTrace();
         }
 
-        return rendezVousRepo.save(rdv);
+        return saved;
     }
+
     // ─────────────────────────────────────────────
     // CALL NEXT — doctor clicks "Next Patient"
     // ─────────────────────────────────────────────
     @Override
     public RendezVousResponseDto callNextPatient(Long medecinId) {
-        // 1. Mark the current EN_COURS appointment as COMPLETED
+        // 1. Mark current EN_COURS -> COMPLETED
         Optional<RendezVous> inProgress = rendezVousRepo.findInProgressByMedecin(medecinId);
         inProgress.ifPresent(rdv -> {
             rdv.setStatus("COMPLETED");
             rendezVousRepo.save(rdv);
         });
 
-        // 2. Get the next waiting patient (lowest queue number today)
+        // 2. Get the waiting list
         List<RendezVous> waitingList = rendezVousRepo.findWaitingByMedecinAndDate(
                 medecinId, LocalDate.now()
         );
-
         if (waitingList.isEmpty()) {
             throw new IllegalStateException("Aucun patient en attente");
         }
 
-        RendezVous next = waitingList.get(0); // lowest queueNumber
+        // 3. Call the next patient
+        RendezVous next = waitingList.get(0);
         next.setStatus("EN_COURS");
         RendezVous saved = rendezVousRepo.save(next);
+
+        // ✅ WebSocket: tell called patient it's their turn
+        wsHandler.notifyCalledPatient(saved.getPatient().getId());
+
+        // ✅ WebSocket: recalculate positions for all remaining EN_ATTENTE patients
+        wsHandler.notifyWaitingPatients(medecinId);
 
         return toDto(saved);
     }
@@ -121,10 +123,8 @@ public class RendezVousService implements IRendezVous {
     @Override
     @Transactional(readOnly = true)
     public List<RendezVousResponseDto> getTodayQueueByMedecin(Long medecinId) {
-        List<RendezVous> list = rendezVousRepo.findWaitingByMedecinAndDate(
-                medecinId, LocalDate.now()
-        );
-        return list.stream().map(this::toDto).toList();
+        return rendezVousRepo.findWaitingByMedecinAndDate(medecinId, LocalDate.now())
+                .stream().map(this::toDto).toList();
     }
 
     // ─────────────────────────────────────────────
@@ -135,19 +135,46 @@ public class RendezVousService implements IRendezVous {
         RendezVous rdv = rendezVousRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Rendez-vous introuvable : " + id));
 
-        List<String> validStatuses = List.of(
-                "EN_ATTENTE", "EN_COURS", "COMPLETED", "ANNULE"
-        );
+        List<String> validStatuses = List.of("EN_ATTENTE", "EN_COURS", "COMPLETED", "ANNULE");
         if (!validStatuses.contains(status.toUpperCase())) {
             throw new IllegalArgumentException("Statut invalide : " + status);
         }
 
         rdv.setStatus(status.toUpperCase());
-        return toDto(rendezVousRepo.save(rdv));
+        RendezVous saved = rendezVousRepo.save(rdv);
+
+        switch (saved.getStatus()) {
+            case "EN_COURS" ->
+                // ✅ WebSocket: patient is being called right now
+                    wsHandler.notifyCalledPatient(saved.getPatient().getId());
+
+            case "ANNULE", "COMPLETED" ->
+                // ✅ WebSocket: queue shifted, recalculate everyone ahead
+                    wsHandler.notifyWaitingPatients(saved.getMedecin().getId());
+        }
+
+        return toDto(saved);
     }
 
     // ─────────────────────────────────────────────
-    // STANDARD CRUD (unchanged logic)
+    // CANCEL
+    // ─────────────────────────────────────────────
+    @Override
+    public RendezVous cancelRendezVous(Long id) {
+        RendezVous rdv = rendezVousRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Rendez-vous introuvable : " + id));
+
+        rdv.setStatus("ANNULE");
+        RendezVous cancelled = rendezVousRepo.save(rdv);
+
+        // ✅ WebSocket: queue shifted, push updated positions to remaining patients
+        wsHandler.notifyWaitingPatients(cancelled.getMedecin().getId());
+
+        return cancelled;
+    }
+
+    // ─────────────────────────────────────────────
+    // STANDARD CRUD
     // ─────────────────────────────────────────────
     @Override
     @Transactional(readOnly = true)
@@ -159,7 +186,6 @@ public class RendezVousService implements IRendezVous {
     public List<RendezVous> getAllRendezVous() {
         return List.of();
     }
-
 
     @Override
     @Transactional(readOnly = true)
@@ -180,15 +206,6 @@ public class RendezVousService implements IRendezVous {
         return List.of();
     }
 
-
-    @Override
-    public RendezVous cancelRendezVous(Long id) {
-        RendezVous rdv = rendezVousRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Rendez-vous introuvable : " + id));
-        rdv.setStatus("ANNULE");
-        return rendezVousRepo.save(rdv);
-    }
-
     @Override
     public void deleteRendezVous(Long id) {
         if (!rendezVousRepo.existsById(id)) {
@@ -203,15 +220,12 @@ public class RendezVousService implements IRendezVous {
         return rendezVousRepo.existsById(id);
     }
 
-
-
     // ─────────────────────────────────────────────
     // HELPER — entity to DTO
     // ─────────────────────────────────────────────
     private RendezVousResponseDto toDto(RendezVous rdv) {
         return new RendezVousResponseDto(
                 rdv.getId(),
-
                 rdv.getStatus(),
                 rdv.getMedecin() != null ? rdv.getMedecin().getId() : null,
                 rdv.getPatient() != null ? rdv.getPatient().getNom() : null,
