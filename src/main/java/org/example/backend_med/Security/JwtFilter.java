@@ -14,6 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
@@ -43,21 +44,31 @@ public class JwtFilter extends OncePerRequestFilter {
         try {
             if (token != null && jwtUtil.validateJwtToken(token)) {
                 Claims claims = jwtUtil.getClaims(token);
+
                 String username = claims.getSubject();
-                String role = (String) claims.get("role");
+                String role     = (String) claims.get("role");
+                Long   userId   = ((Number) claims.get("user_id")).longValue();
+
+                // Principal is now a Map — accessible via auth.getPrincipal() in /sec/me
+                Map<String, Object> principal = Map.of(
+                        "username", username,
+                        "role",     role,
+                        "user_id",  userId
+                );
 
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(
-                                username,
+                                principal,
                                 null,
                                 List.of(new SimpleGrantedAuthority(role))
                         );
+
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
         } catch (Exception e) {
-            e.printStackTrace(); // just log invalid token
+            e.printStackTrace();
         }
 
-        filterChain.doFilter(request, response); // let Spring handle 401 if not authenticated
+        filterChain.doFilter(request, response);
     }
 }
