@@ -34,9 +34,25 @@
                     .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                     .authorizeHttpRequests(auth -> auth
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                            // Publiques
                             .requestMatchers("/api/specialites/**").permitAll()
                             .requestMatchers("/api/auth/**").permitAll()
+
+                            // Admin uniquement
+                            .requestMatchers("/api/administrateurs/**").hasRole("ADMIN")
+                            .requestMatchers(HttpMethod.POST,   "/api/medecins/**").hasRole("ADMIN")
+                            .requestMatchers(HttpMethod.DELETE, "/api/medecins/**").hasRole("ADMIN")
+                            .requestMatchers(HttpMethod.POST,   "/api/patients/**").hasRole("ADMIN")
+                            .requestMatchers(HttpMethod.DELETE, "/api/patients/**").hasRole("ADMIN")
+
+                            // Médecin + Admin
+                            .requestMatchers("/api/dossiers/**").hasAnyRole("ADMIN", "MEDECIN")
+                            .requestMatchers(HttpMethod.PUT, "/api/rendez-vous/**").hasAnyRole("ADMIN", "MEDECIN")
+
+                            // Tout utilisateur connecté
                             .requestMatchers("/api/**").authenticated()
+
                             .anyRequest().permitAll()
                     )
                     .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

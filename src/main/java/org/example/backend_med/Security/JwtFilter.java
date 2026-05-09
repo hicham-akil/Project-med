@@ -60,13 +60,14 @@ public class JwtFilter extends OncePerRequestFilter {
                         new UsernamePasswordAuthenticationToken(
                                 principal,
                                 null,
-                                List.of(new SimpleGrantedAuthority(role))
-                        );
+                                List.of(new SimpleGrantedAuthority("ROLE_" + role))                        );
 
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.warn("JWT invalide : {}"+e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
         }
 
         filterChain.doFilter(request, response);
