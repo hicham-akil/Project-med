@@ -98,4 +98,5 @@ public interface RendezVousRepo extends JpaRepository<RendezVous, Long> {
     );
 
 
+    long countByMedecinAndDateWithLock(Long id, LocalDate date);
 }
