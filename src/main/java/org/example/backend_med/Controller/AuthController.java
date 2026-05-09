@@ -78,7 +78,7 @@ public class AuthController {
                     request.get("password")
             );
 
-            String token = jwtUtil.GenerateJwtToken(user.getNom(), user.getRole(), user.getId());
+            String token = jwtUtil.generateJwtToken(user.getNom(), user.getRole(), user.getId());
 
             ResponseCookie cookie = ResponseCookie.from("token", token)
                     .httpOnly(true)
