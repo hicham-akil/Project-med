@@ -8,6 +8,7 @@ import org.example.backend_med.Models.*;
 import org.example.backend_med.Repository.*;
 import org.example.backend_med.websocket.QueueWebSocketHandler;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
@@ -99,6 +100,50 @@ public class RendezVousService implements IRendezVous {
      * WebSocket push and notifications are side-effects — they must never
      * run for a rolled-back appointment.
      */
+    @Override
+    @Transactional
+    public void holdCurrentAndCallNext(Long medecinId) {
+        // 1. Find the current patient (safely)
+        Optional<RendezVous> current = rendezVousRepo.findByMedecinIdAndStatus(medecinId, "EN_COURS");
+
+        // 2. Put them on hold if they exist
+        current.ifPresent(rv -> {
+            rv.setStatus("ON_HOLD");
+            rendezVousRepo.save(rv);
+        });
+
+        // 3. Call the next patient (Reuse your existing working logic)
+        try {
+            this.callNextPatient(medecinId);
+        } catch (IllegalStateException e) {
+            // Log if there's no one else in the queue, but don't crash the app
+            System.out.println("No more patients in queue after putting one on hold.");
+        }
+    }
+    @Override
+    @Transactional
+    public RendezVousResponseDto recallPatientFromHold(Long rdvId) {
+        RendezVous rdv = rendezVousRepo.findById(rdvId)
+                .orElseThrow(() -> new IllegalArgumentException("Rendez-vous introuvable"));
+
+        if (!"ON_HOLD".equals(rdv.getStatus())) {
+            throw new IllegalStateException("Ce patient n'est pas en attente (ON_HOLD).");
+        }
+
+        // Complete whoever is currently in progress first (optional, depends on your business rules)
+        rendezVousRepo.findInProgressByMedecin(rdv.getMedecin().getId()).ifPresent(current -> {
+            current.setStatus("COMPLETED");
+            rendezVousRepo.save(current);
+        });
+
+        rdv.setStatus("EN_COURS");
+        RendezVous saved = rendezVousRepo.save(rdv);
+
+        eventPublisher.publishEvent(new PatientCalledEvent(saved.getPatient().getId(), saved.getMedecin().getId()));
+
+        return toDto(saved);
+    }
+
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onRendezVousCreated(RendezVousCreatedEvent event) {
         wsHandler.notifyPatient(event.patientId(), event.medecinId());
@@ -175,7 +220,8 @@ public class RendezVousService implements IRendezVous {
         RendezVous rdv = rendezVousRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Rendez-vous introuvable : " + id));
 
-        List<String> validStatuses = List.of("EN_ATTENTE", "EN_COURS", "COMPLETED", "ANNULE");
+        // Added "ON_HOLD" to the list of valid statuses
+        List<String> validStatuses = List.of("EN_ATTENTE", "EN_COURS", "COMPLETED", "ANNULE", "ON_HOLD");
         String normalized = status.toUpperCase();
         if (!validStatuses.contains(normalized)) {
             throw new IllegalArgumentException("Statut invalide : " + status);
@@ -184,20 +230,17 @@ public class RendezVousService implements IRendezVous {
         rdv.setStatus(normalized);
         RendezVous saved = rendezVousRepo.save(rdv);
 
-        long patientId = saved.getPatient().getId();
-        long medecinId = saved.getMedecin().getId();
-
-        eventPublisher.publishEvent(new StatusUpdatedEvent(normalized, patientId, medecinId));
+        eventPublisher.publishEvent(new StatusUpdatedEvent(normalized, saved.getPatient().getId(), saved.getMedecin().getId()));
 
         return toDto(saved);
     }
-
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onStatusUpdated(StatusUpdatedEvent event) {
         switch (event.status()) {
             case "EN_COURS"  -> wsHandler.notifyCalledPatient(event.patientId());
             case "ANNULE",
-                 "COMPLETED" -> wsHandler.notifyWaitingPatients(event.medecinId());
+                 "COMPLETED",
+                 "ON_HOLD"   -> wsHandler.notifyWaitingPatients(event.medecinId());
         }
     }
 
@@ -272,6 +315,35 @@ public class RendezVousService implements IRendezVous {
             throw new IllegalArgumentException("Rendez-vous introuvable : " + id);
         }
         rendezVousRepo.deleteById(id);
+    }
+    @Scheduled(cron = "0 59 23 * * ?")
+    @Transactional
+    public void autoCancelUnresolvedAppointments() {
+        log.info("Démarrage du nettoyage de fin de journée...");
+
+        LocalDate today = LocalDate.now();
+        List<RendezVous> unresolved = rendezVousRepo.findUnresolvedByDateBefore(today);
+
+        if (unresolved.isEmpty()) {
+            log.info("Aucun rendez-vous abandonné trouvé.");
+            return;
+        }
+
+        for (RendezVous rdv : unresolved) {
+            rdv.setStatus("ANNULE");
+            rendezVousRepo.save(rdv);
+
+            // Notify the patient that their appointment was cancelled due to no-show/clinic closure
+            try {
+                notificationService.notify(rdv.getPatient(),
+                        "Votre rendez-vous d'aujourd'hui n'a pas pu être honoré et a été annulé.",
+                        NotificationType.PATIENT);
+            } catch (Exception e) {
+                log.error("Erreur de notification d'annulation automatique pour le patient {}", rdv.getPatient().getId());
+            }
+        }
+
+        log.info("Nettoyage terminé : {} rendez-vous annulés.", unresolved.size());
     }
 
     // ─────────────────────────────────────────────

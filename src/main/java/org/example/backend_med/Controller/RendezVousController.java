@@ -126,4 +126,25 @@ public class RendezVousController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
+    @PostMapping("/medecin/{medecinId}/hold-next")
+    public ResponseEntity<?> holdAndNext(@PathVariable Long medecinId) {
+        try {
+            // This calls the service logic you already implemented
+            rendezVousService.holdCurrentAndCallNext(medecinId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    // ── RECALL — Bring a patient back from "Hold" status ──
+    @PostMapping("/{id}/recall")
+    public ResponseEntity<?> recall(@PathVariable Long id) {
+        try {
+            rendezVousService.recallPatientFromHold(id);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
 }

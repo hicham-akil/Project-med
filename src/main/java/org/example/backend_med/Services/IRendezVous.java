@@ -39,4 +39,8 @@ public interface IRendezVous {
     void deleteRendezVous(Long id);
 
     boolean existsById(Long id);
+
+    RendezVousResponseDto recallPatientFromHold(Long id);
+
+    void holdCurrentAndCallNext(Long medecinId);
 }

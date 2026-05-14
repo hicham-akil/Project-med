@@ -101,6 +101,18 @@ public interface RendezVousRepo extends JpaRepository<RendezVous, Long> {
 
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT COUNT(r) FROM RendezVous r WHERE r.medecin.id = :medecinId AND r.date = :date")
-    long countByMedecinAndDateWithLock(Long medecinId, LocalDate date);
+    @Query("""
+    SELECT COUNT(r)
+    FROM RendezVous r
+    WHERE r.medecin.id = :medecinId
+    AND r.horaire.date = :date
+""")
+    long countByMedecinAndDateWithLock(
+            @Param("medecinId") Long medecinId,
+            @Param("date") LocalDate date
+    );
+    @Query("SELECT r FROM RendezVous r WHERE r.horaire.date <= :date AND r.status IN ('EN_ATTENTE', 'EN_COURS', 'ON_HOLD')")
+    List<RendezVous> findUnresolvedByDateBefore(LocalDate date);
+
+    Optional<RendezVous> findByMedecinIdAndStatus(Long medecinId, String enCours);
 }
