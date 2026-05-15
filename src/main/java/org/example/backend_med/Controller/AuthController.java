@@ -121,6 +121,42 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(Map.of("message", "Déconnecté"));
     }
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+        try {
+            authService.sendResetCode(request.get("email"));
+
+            return ResponseEntity.ok(
+                    Map.of("message", "Reset code sent successfully")
+            );
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("error", e.getMessage())
+            );
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        try {
+
+            authService.resetPassword(
+                    request.get("email"),
+                    request.get("code"),
+                    request.get("newPassword")
+            );
+
+            return ResponseEntity.ok(
+                    Map.of("message", "Password reset successfully")
+            );
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("error", e.getMessage())
+            );
+        }
+    }
 
     @GetMapping("/sec/me")
     public ResponseEntity<?> me(HttpServletRequest request) {

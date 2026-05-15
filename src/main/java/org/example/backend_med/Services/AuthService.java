@@ -11,17 +11,24 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+    private final EmailService emailService;
 
     private final UtilisateurRepository utilisateurRepository;
     private final PasswordEncoder passwordEncoder;
     private final SpecialiteRepo specialiteRepo;
+
+    private final ConcurrentHashMap<String, String> resetCodes = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, LocalDateTime> resetCodeExpiry = new ConcurrentHashMap<>();
     public Utlisateur register(Map<String, Object> request, String imageUrl) {
         String role = (String) request.get("role");
         String email = (String) request.get("email");
@@ -92,5 +99,53 @@ public class AuthService {
         }
 
         return user;
+    }
+    public void sendResetCode(String email) {
+
+        Utlisateur user = utilisateurRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String code = generateCode();
+
+        resetCodes.put(email, code);
+        resetCodeExpiry.put(email, LocalDateTime.now().plusMinutes(10));
+
+        emailService.sendResetCode(email, code);
+    }
+
+    public void resetPassword(String email, String code, String newPassword) {
+
+        Utlisateur user = utilisateurRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String storedCode = resetCodes.get(email);
+
+        if (storedCode == null || !storedCode.equals(code)) {
+            throw new RuntimeException("Invalid reset code");
+        }
+
+        LocalDateTime expiry = resetCodeExpiry.get(email);
+
+        if (expiry.isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Reset code expired");
+        }
+
+        user.setPassword(
+                passwordEncoder.encode(newPassword)
+        );
+
+        utilisateurRepository.save(user);
+
+        resetCodes.remove(email);
+        resetCodeExpiry.remove(email);
+    }
+
+    private String generateCode() {
+
+        Random random = new Random();
+
+        int code = 100000 + random.nextInt(900000);
+
+        return String.valueOf(code);
     }
 }
