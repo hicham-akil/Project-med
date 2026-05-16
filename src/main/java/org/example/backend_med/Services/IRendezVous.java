@@ -32,6 +32,10 @@ public interface IRendezVous {
 
     List<RendezVousResponseDto> getRendezVousByMedecinId(Long medecinId);
 
+    List<RendezVousResponseDto> getHistoryByPatientId(Long patientId);
+
+    List<RendezVousResponseDto> getHistoryByMedecinId(Long medecinId);
+
     List<RendezVous> getRendezVousByDate(LocalDate date);
 
 

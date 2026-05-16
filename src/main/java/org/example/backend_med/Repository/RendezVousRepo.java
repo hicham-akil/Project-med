@@ -52,6 +52,18 @@ public interface RendezVousRepo extends JpaRepository<RendezVous, Long> {
                                          @Param("currentDate") LocalDate currentDate,
                                          @Param("currentTime") LocalTime currentTime);
 
+    @Query("SELECT r FROM RendezVous r WHERE r.patient.id = :patientId " +
+            "AND r.horaire.date < :currentDate " +
+            "ORDER BY r.horaire.date DESC, r.horaire.heureDebut DESC")
+    List<RendezVous> findHistoryByPatientId(@Param("patientId") Long patientId,
+                                            @Param("currentDate") LocalDate currentDate);
+
+    @Query("SELECT r FROM RendezVous r WHERE r.medecin.id = :medecinId " +
+            "AND r.horaire.date < :currentDate " +
+            "ORDER BY r.horaire.date DESC, r.horaire.heureDebut DESC")
+    List<RendezVous> findHistoryByMedecinId(@Param("medecinId") Long medecinId,
+                                            @Param("currentDate") LocalDate currentDate);
+
     @Query("SELECT r FROM RendezVous r WHERE r.medecin.id = :medecinId " +
             "AND r.horaire.date = :date AND r.status = 'EN_ATTENTE' " +
             "ORDER BY r.queueNumber ASC")

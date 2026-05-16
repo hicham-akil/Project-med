@@ -74,11 +74,23 @@ public class RendezVousController {
         return ResponseEntity.ok(rendezVousService.getRendezVousByPatientId(patientId));
     }
 
+    @GetMapping("/patient/{patientId}/history")
+    public ResponseEntity<List<RendezVousResponseDto>> getHistoryByPatient(
+            @PathVariable Long patientId) {
+        return ResponseEntity.ok(rendezVousService.getHistoryByPatientId(patientId));
+    }
+
     // ── GET by medecin ──
     @GetMapping("/medecin/{medecinId}")
     public ResponseEntity<List<RendezVousResponseDto>> getByMedecin(
             @PathVariable Long medecinId) {
         return ResponseEntity.ok(rendezVousService.getRendezVousByMedecinId(medecinId));
+    }
+
+    @GetMapping("/medecin/{medecinId}/history")
+    public ResponseEntity<List<RendezVousResponseDto>> getHistoryByMedecin(
+            @PathVariable Long medecinId) {
+        return ResponseEntity.ok(rendezVousService.getHistoryByMedecinId(medecinId));
     }
 
     // ── GET by date ──

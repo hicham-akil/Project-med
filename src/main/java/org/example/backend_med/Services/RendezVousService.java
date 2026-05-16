@@ -287,6 +287,20 @@ public class RendezVousService implements IRendezVous {
 
     @Override
     @Transactional(readOnly = true)
+    public List<RendezVousResponseDto> getHistoryByPatientId(Long patientId) {
+        return rendezVousRepo.findHistoryByPatientId(patientId, LocalDate.now())
+                .stream().map(this::toDto).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RendezVousResponseDto> getHistoryByMedecinId(Long medecinId) {
+        return rendezVousRepo.findHistoryByMedecinId(medecinId, LocalDate.now())
+                .stream().map(this::toDto).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public boolean existsById(Long id) {
         return rendezVousRepo.existsById(id);
     }
