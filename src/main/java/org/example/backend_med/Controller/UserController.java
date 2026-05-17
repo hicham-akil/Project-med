@@ -1,7 +1,9 @@
 package org.example.backend_med.Controller;
 
+import org.example.backend_med.Dto.UpdateUserRequest;
 import org.example.backend_med.Models.Patient;
 import org.example.backend_med.Models.Medecin;
+import org.example.backend_med.Models.Utlisateur;
 import org.example.backend_med.Services.ImageUploadService;
 import org.example.backend_med.Services.UserService;
 import org.springframework.http.ResponseEntity;
@@ -27,34 +29,22 @@ public class UserController {
 
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUser(@PathVariable Long id) {
-        return userService.getUserById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public Utlisateur getUser(@PathVariable Long id) {
+        return userService.getUserById(id);
     }
 
     @PutMapping(value = "/{id}", consumes = "multipart/form-data")
-    public ResponseEntity<?> updateUser(
+    public ResponseEntity<Utlisateur> updateUser(
             @PathVariable Long id,
-            @RequestPart("data") Map<String, Object> updatedUserData,
+            @RequestPart("data") UpdateUserRequest request,
             @RequestPart(value = "image", required = false) MultipartFile image
     ) {
-        try {
-            String imageUrl = null;
-            if (image != null && !image.isEmpty()) {
-                imageUrl = imageUploadService.uploadImage(image);
-                System.out.println("Image uploaded successfully: " + imageUrl);
-            }
+        String imageUrl = (image != null && !image.isEmpty())
+                ? imageUploadService.uploadImage(image)
+                : null;
 
-            Object updated = userService.updateUser(id, updatedUserData, imageUrl);
-            return ResponseEntity.ok(updated);
-        } catch (RuntimeException e) {
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(errorResponse);
-        }
+        return ResponseEntity.ok(userService.updateUser(id, request, imageUrl));
     }
-
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {

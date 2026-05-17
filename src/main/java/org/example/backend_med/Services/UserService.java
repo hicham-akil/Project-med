@@ -1,126 +1,64 @@
 package org.example.backend_med.Services;
 
+import jakarta.persistence.EntityNotFoundException;
+import org.example.backend_med.Dto.UpdateUserRequest;
 import org.example.backend_med.Models.Patient;
 import org.example.backend_med.Models.Medecin;
+import org.example.backend_med.Models.Utlisateur;
 import org.example.backend_med.Repository.PatientRepo;
 import org.example.backend_med.Repository.MedecinRepo;
+import org.example.backend_med.Repository.UtilisateurRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
-
 @Service
 public class UserService {
 
-    private final PatientRepo patientRepo;
-    private final MedecinRepo medecinRepo;
+    private final UtilisateurRepository utilisateurRepo;
 
-    public UserService(PatientRepo patientRepo, MedecinRepo medecinRepo) {
-        this.patientRepo = patientRepo;
-        this.medecinRepo = medecinRepo;
+    public UserService(UtilisateurRepository utilisateurRepo) {
+        this.utilisateurRepo = utilisateurRepo;
     }
 
-    // ---------------------------
-    // Get user by ID, automatically detect role
-    // ---------------------------
-    public Optional<?> getUserById(Long id) {
-        Optional<Patient> patientOpt = patientRepo.findById(id);
-        if (patientOpt.isPresent()) {
-            return patientOpt;
-        }
-
-        Optional<Medecin> medecinOpt = medecinRepo.findById(id);
-        return medecinOpt;
+    public Utlisateur getUserById(Long id) {
+        return utilisateurRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Utilisateur introuvable : " + id));
     }
 
-    // ---------------------------
-    // Update user by ID (profile info only)
-    // ---------------------------
-    public Object updateUser(Long id, Map<String, Object> updatedUserData, String imageUrl) {
-        Optional<Patient> patientOpt = patientRepo.findById(id);
-        if (patientOpt.isPresent()) {
-            Patient existing = patientOpt.get();
+    public Utlisateur updateUser(Long id, UpdateUserRequest req, String imageUrl) {
+        Utlisateur user = getUserById(id);
 
-            if (updatedUserData.containsKey("nom")) {
-                existing.setNom((String) updatedUserData.get("nom"));
-            }
-            if (updatedUserData.containsKey("prenom")) {
-                existing.setPrenom((String) updatedUserData.get("prenom"));
-            }
-            if (updatedUserData.containsKey("email")) {
-                existing.setEmail((String) updatedUserData.get("email"));
-            }
-            if (updatedUserData.containsKey("telephone")) {
-                existing.setTelephone((String) updatedUserData.get("telephone"));
-            }
-            if (updatedUserData.containsKey("adresse")) {
-                existing.setAdresse((String) updatedUserData.get("adresse"));
-            }
-            if (updatedUserData.containsKey("dateNaissance")) {
-                Object dateObj = updatedUserData.get("dateNaissance");
-                if (dateObj instanceof String) {
-                    existing.setDateNaissance(new Date());
-                } else if (dateObj instanceof Date) {
-                    existing.setDateNaissance((Date) dateObj);
-                }
-            }
+        if (req.nom() != null && !req.nom().isBlank())       user.setNom(req.nom());
+        if (req.prenom() != null && !req.prenom().isBlank()) user.setPrenom(req.prenom());
+        if (req.email() != null && !req.email().isBlank())   user.setEmail(req.email());
+        if (req.telephone() != null)                         user.setTelephone(req.telephone());
+        if (req.adresse() != null)                           user.setAdresse(req.adresse());
 
-            // Update image if provided
-            if (imageUrl != null) {
-                existing.setProfileImageUrl(imageUrl);
-            }
-
-            return patientRepo.save(existing);
+        if (req.dateNaissance() != null && !req.dateNaissance().isBlank()) {
+            String datePart = req.dateNaissance().contains("T")
+                    ? req.dateNaissance().substring(0, 10)
+                    : req.dateNaissance();
+            user.setDateNaissance(
+                    Date.from(
+                            LocalDate.parse(datePart)
+                                    .atStartOfDay(ZoneId.systemDefault())
+                                    .toInstant()
+                    )
+            );
         }
 
-        Optional<Medecin> medecinOpt = medecinRepo.findById(id);
-        if (medecinOpt.isPresent()) {
-            Medecin existing = medecinOpt.get();
+        if (imageUrl != null) user.setProfileImageUrl(imageUrl);
 
-            if (updatedUserData.containsKey("nom")) {
-                existing.setNom((String) updatedUserData.get("nom"));
-            }
-            if (updatedUserData.containsKey("prenom")) {
-                existing.setPrenom((String) updatedUserData.get("prenom"));
-            }
-            if (updatedUserData.containsKey("email")) {
-                existing.setEmail((String) updatedUserData.get("email"));
-            }
-            if (updatedUserData.containsKey("telephone")) {
-                existing.setTelephone((String) updatedUserData.get("telephone"));
-            }
-            if (updatedUserData.containsKey("adresse")) {
-                existing.setAdresse((String) updatedUserData.get("adresse"));
-            }
-
-            // Update image if provided
-            if (imageUrl != null) {
-                existing.setProfileImageUrl(imageUrl);
-            }
-
-            return medecinRepo.save(existing);
-        }
-
-        throw new RuntimeException("User not found with id: " + id);
+        return utilisateurRepo.save(user);
     }
-
-    // ---------------------------
-    // Delete user by ID
-    // ---------------------------
     public void deleteUser(Long id) {
-        Optional<Patient> patientOpt = patientRepo.findById(id);
-        if (patientOpt.isPresent()) {
-            patientRepo.deleteById(id);
-            return;
+        if (!utilisateurRepo.existsById(id)) {
+            throw new EntityNotFoundException("Utilisateur introuvable : " + id);
         }
-
-        Optional<Medecin> medecinOpt = medecinRepo.findById(id);
-        if (medecinOpt.isPresent()) {
-            medecinRepo.deleteById(id);
-            return;
-        }
-
-        throw new RuntimeException("User not found with id: " + id);
+        utilisateurRepo.deleteById(id);
     }
 }

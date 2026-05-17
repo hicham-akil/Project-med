@@ -16,7 +16,9 @@ public abstract class Utlisateur {
     private String nom;
     private String prenom;
     private String password;
-
+    private Date dateNaissance;
+    private String adresse;
+    private String telephone;
     @Column(unique = true, nullable = false)
     private String email;
 

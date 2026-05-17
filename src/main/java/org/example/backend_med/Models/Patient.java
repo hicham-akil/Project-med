@@ -18,9 +18,6 @@ import java.util.List;
         property = "id"
 )
 public class Patient extends Utlisateur {
-    private Date dateNaissance;
-    private String adresse;
-    private String telephone;
     @OneToMany(mappedBy = "patient")
     private List<RendezVous> rendezVous;
 }

@@ -18,8 +18,6 @@ import java.util.List;
 )
 public class Medecin extends Utlisateur {
 
-    private String telephone;
-    private String adresse;
 
     @OneToMany(mappedBy = "medecin", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RendezVous> rendezVous = new ArrayList<>();
