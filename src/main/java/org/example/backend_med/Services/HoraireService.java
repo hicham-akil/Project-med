@@ -2,6 +2,7 @@ package org.example.backend_med.Services;
 
 import org.example.backend_med.Dto.AvailableHoraireDTO;
 import org.example.backend_med.Models.Horaire;
+import org.example.backend_med.Models.RendezVous;
 import org.example.backend_med.Repository.HoraireRepo;
 import org.example.backend_med.Repository.RendezVousRepo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,68 +22,77 @@ public class HoraireService implements IHoraire {
     @Autowired
     private RendezVousRepo rendezVousRepo;
 
-    // ── CREATE / UPDATE ──────────────────────────────────────────
     @Override
     public List<Horaire> createHoraire(List<Horaire> horaires) {
 
         List<Horaire> savedHoraires = new ArrayList<>();
+
         for (Horaire horaire : horaires) {
 
-            // ── VALIDATION ─────────────────────────────
             if (horaire.getDate() == null) {
                 throw new IllegalArgumentException("Date is required");
             }
-
             if (horaire.getHeureDebut() == null || horaire.getHeureFin() == null) {
                 throw new IllegalArgumentException("HeureDebut and HeureFin are required");
             }
-
             if (horaire.getHeureDebut().isAfter(horaire.getHeureFin())) {
                 throw new IllegalArgumentException("HeureDebut must be before HeureFin");
             }
-
             if (horaire.getMedecin() == null || horaire.getMedecin().getId() == null) {
                 throw new IllegalArgumentException("Medecin is required");
             }
 
-
             Horaire toSave;
 
-            // ── UPDATE MODE ─────────────────────────────
             if (horaire.getIdHoraire() != null) {
-
                 toSave = horaireRepo.findById(horaire.getIdHoraire())
                         .orElseThrow(() -> new IllegalArgumentException("Horaire not found"));
-
-            }
-            // ── CREATE OR MERGE MODE ────────────────────
-            else {
-
+            } else {
                 List<Horaire> existing = horaireRepo.findByMedecinIdAndDate(
                         horaire.getMedecin().getId(),
                         horaire.getDate()
                 );
-
-                // If exists → update first one (your current logic)
                 toSave = existing.isEmpty() ? new Horaire() : existing.get(0);
             }
 
-            // ── ASSIGN VALUES ───────────────────────────
+            boolean wasActive = "ACTIVE".equalsIgnoreCase(toSave.getStatus());
+            boolean willBeInactive = "INACTIVE".equalsIgnoreCase(horaire.getStatus());
+
             toSave.setDate(horaire.getDate());
             toSave.setHeureDebut(horaire.getHeureDebut());
             toSave.setHeureFin(horaire.getHeureFin());
             toSave.setStatus(horaire.getStatus());
             toSave.setMedecin(horaire.getMedecin());
 
-            savedHoraires.add(horaireRepo.save(toSave));
+            Horaire saved = horaireRepo.save(toSave);
+
+            if (wasActive && willBeInactive && saved.getIdHoraire() != null) {
+                cancelRendezVousForHoraire(saved.getIdHoraire());
+            }
+
+            savedHoraires.add(saved);
         }
 
         return savedHoraires;
     }
+
+    private void cancelRendezVousForHoraire(Long idHoraire) {
+        List<RendezVous> rendezVousList = rendezVousRepo.findByHoraireId(idHoraire);
+        for (RendezVous rdv : rendezVousList) {
+            if (!"ANNULÉ".equalsIgnoreCase(rdv.getStatus())) {
+                rdv.setStatus("ANNULÉ");
+                rendezVousRepo.save(rdv);
+            }
+        }
+    }
+
     @Override
     public Horaire updateHoraire(Long id, Horaire horaire) {
         Horaire existing = horaireRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Horaire non trouvé avec l'ID: " + id));
+
+        boolean wasActive = "ACTIVE".equalsIgnoreCase(existing.getStatus());
+        boolean willBeInactive = "INACTIVE".equalsIgnoreCase(horaire.getStatus());
 
         existing.setDate(horaire.getDate());
         existing.setHeureDebut(horaire.getHeureDebut());
@@ -93,7 +103,13 @@ public class HoraireService implements IHoraire {
             existing.setMedecin(horaire.getMedecin());
         }
 
-        return horaireRepo.save(existing);
+        Horaire saved = horaireRepo.save(existing);
+
+        if (wasActive && willBeInactive) {
+            cancelRendezVousForHoraire(saved.getIdHoraire());
+        }
+
+        return saved;
     }
 
     @Override
@@ -101,10 +117,10 @@ public class HoraireService implements IHoraire {
         if (!horaireRepo.existsById(id)) {
             throw new IllegalArgumentException("Horaire non trouvé avec l'ID: " + id);
         }
+        cancelRendezVousForHoraire(id);
         horaireRepo.deleteById(id);
     }
 
-    // ── READ ─────────────────────────────────────────────────────
     @Override
     @Transactional(readOnly = true)
     public Optional<Horaire> getHoraireById(Long id) {
@@ -147,7 +163,6 @@ public class HoraireService implements IHoraire {
         return horaireRepo.findAvailableHorairesByMedecinId(medecinId);
     }
 
-    // ── QUEUE-COMPATIBLE: available slots (just returns active days) ──
     @Override
     @Transactional(readOnly = true)
     public List<AvailableHoraireDTO> getAvailableHorairesWithSlots(Long medecinId) {
@@ -159,7 +174,6 @@ public class HoraireService implements IHoraire {
             if (horaire.getDate() == null) continue;
             if (horaire.getDate().isBefore(today)) continue;
 
-            // Count patients already in queue for this doctor on this day
             long count = rendezVousRepo.countByMedecinAndDate(medecinId, horaire.getDate());
 
             result.add(new AvailableHoraireDTO(
@@ -170,7 +184,7 @@ public class HoraireService implements IHoraire {
                     horaire.getStatus(),
                     horaire.getMedecin().getId(),
                     horaire.getMedecin().getNom(),
-                    count > 0  // partiallyBooked = true if queue already has patients
+                    count > 0
             ));
         }
 
@@ -178,7 +192,6 @@ public class HoraireService implements IHoraire {
         return result;
     }
 
-    // ── QUEUE-COMPATIBLE: available slots for a specific date ──
     @Transactional(readOnly = true)
     public List<AvailableHoraireDTO> getAvailableTimeForDoctorOnDate(Long medecinId, LocalDate date) {
         List<Horaire> activeHoraires = horaireRepo.findAvailableHorairesByMedecinId(medecinId);
@@ -205,5 +218,4 @@ public class HoraireService implements IHoraire {
         result.sort(Comparator.comparing(AvailableHoraireDTO::getDate));
         return result;
     }
-
 }

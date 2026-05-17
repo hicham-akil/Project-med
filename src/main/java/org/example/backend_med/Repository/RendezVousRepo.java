@@ -73,10 +73,7 @@ public interface RendezVousRepo extends JpaRepository<RendezVous, Long> {
     @Query("SELECT r FROM RendezVous r WHERE r.medecin.id = :medecinId AND r.status = 'EN_COURS'")
     Optional<RendezVous> findInProgressByMedecin(@Param("medecinId") Long medecinId);
 
-    @Query("SELECT COUNT(r) FROM RendezVous r WHERE r.medecin.id = :medecinId " +
-            "AND r.horaire.date = :date AND r.status != 'ANNULE'")
-    long countByMedecinAndDate(@Param("medecinId") Long medecinId,
-                               @Param("date") LocalDate date);
+
 
     @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM RendezVous r " +
             "WHERE r.patient.id = :patientId " +
@@ -127,4 +124,9 @@ public interface RendezVousRepo extends JpaRepository<RendezVous, Long> {
     List<RendezVous> findUnresolvedByDateBefore(LocalDate date);
 
     Optional<RendezVous> findByMedecinIdAndStatus(Long medecinId, String enCours);
+    @Query("SELECT r FROM RendezVous r WHERE r.horaire.idHoraire = :horaireId")
+    List<RendezVous> findByHoraireId(@Param("horaireId") Long horaireId);
+
+    @Query("SELECT COUNT(r) FROM RendezVous r WHERE r.medecin.id = :medecinId AND r.horaire.date = :date")
+    long countByMedecinAndDate(@Param("medecinId") Long medecinId, @Param("date") LocalDate date);
 }
